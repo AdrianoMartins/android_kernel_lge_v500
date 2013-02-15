@@ -655,8 +655,6 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 	pipe->mfd = mfd;
 #endif
 
-	atomic_set(&vctrl->suspend, 0);
-
 	#ifdef CONFIG_MACH_LGE
 	if (!(mfd->cont_splash_done)) {
 		mfd->cont_splash_done = 1;
@@ -786,6 +784,8 @@ int mdp4_dsi_video_on(struct platform_device *pdev)
 #endif
 	pr_info("%s:-\n", __func__);
 	mutex_unlock(&mfd->dma->ov_mutex);
+
+	atomic_set(&vctrl->suspend, 0);
 
 	return ret;
 }
