@@ -70,8 +70,6 @@ static inline bool try_to_freeze_unsafe(void)
 
 static inline bool try_to_freeze(void)
 {
-	if (!(current->flags & PF_NOFREEZE))
-		debug_check_no_locks_held();
 	return try_to_freeze_unsafe();
 }
 
@@ -216,6 +214,14 @@ static inline long freezable_schedule_timeout_interruptible(long timeout)
 	return __retval;
 }
 
+/* DO NOT ADD ANY NEW CALLERS OF THIS FUNCTION */
+#define freezable_schedule_unsafe()					\
+({									\
+	freezer_do_not_count();						\
+	schedule();							\
+	freezer_count_unsafe();						\
+})
+
 /* Like schedule_timeout_killable(), but should not block the freezer. */
 static inline long freezable_schedule_timeout_killable(long timeout)
 {
@@ -249,6 +255,16 @@ static inline int freezable_schedule_hrtimeout_range(ktime_t *expires,
 	freezer_count();
 	return __retval;
 }
+
+/* DO NOT ADD ANY NEW CALLERS OF THIS FUNCTION */
+#define freezable_schedule_timeout_killable_unsafe(timeout)		\
+({									\
+	long __retval;							\
+	freezer_do_not_count();						\
+	__retval = schedule_timeout_killable(timeout);			\
+	freezer_count_unsafe();						\
+	__retval;							\
+})
 
 /*
  * Freezer-friendly wrappers around wait_event_interruptible(),
@@ -326,20 +342,26 @@ static inline void set_freezable(void) {}
 
 #define freezable_schedule_unsafe()  schedule()
 
+<<<<<<< HEAD
 #define freezable_schedule_timeout(timeout)  schedule_timeout(timeout)
 
 #define freezable_schedule_timeout_interruptible(timeout)		\
 	schedule_timeout_interruptible(timeout)
 
+=======
+>>>>>>> 8969513... freezer: add unsafe versions of freezable helpers for NFS
 #define freezable_schedule_timeout_killable(timeout)			\
 	schedule_timeout_killable(timeout)
 
 #define freezable_schedule_timeout_killable_unsafe(timeout)		\
 	schedule_timeout_killable(timeout)
 
+<<<<<<< HEAD
 #define freezable_schedule_hrtimeout_range(expires, delta, mode)	\
 	schedule_hrtimeout_range(expires, delta, mode)
 
+=======
+>>>>>>> 8969513... freezer: add unsafe versions of freezable helpers for NFS
 #define wait_event_freezable(wq, condition)				\
 		wait_event_interruptible(wq, condition)
 
