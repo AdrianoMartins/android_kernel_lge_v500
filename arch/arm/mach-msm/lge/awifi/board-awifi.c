@@ -122,7 +122,7 @@
 #define MSM_ION_MFC_META_SIZE  0x40000 /* 256 Kbytes */
 #define MSM_CONTIG_MEM_SIZE  0x65000
 #ifdef CONFIG_MSM_IOMMU
-#define MSM_ION_MM_SIZE		0x5F00000 //came from g ics for stability issue org : 0x3800000
+#define MSM_ION_MM_SIZE		0x5C00000
 #define MSM_ION_SF_SIZE		0
 #define MSM_ION_QSECOM_SIZE	0x780000 /* (7.5MB) */
 #define MSM_ION_HEAP_NUM	8
@@ -2339,7 +2339,7 @@ static struct msm_thermal_data msm_thermal_pdata = {
 	.core_limit_temp_degC = 80,
 #endif
 	.core_temp_hysteresis_degC = 10,
-	.core_control_mask = 0xe,
+	.freq_control_mask = 0xf,
 };
 
 #define MSM_SHARED_RAM_PHYS 0x80000000

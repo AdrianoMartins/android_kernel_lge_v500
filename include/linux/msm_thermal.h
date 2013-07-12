@@ -17,6 +17,7 @@
 struct msm_thermal_data {
 	uint32_t sensor_id;
 	uint32_t poll_ms;
+<<<<<<< HEAD
 	int32_t limit_temp_degC;
 	int32_t temp_hysteresis_degC;
 	uint32_t freq_step;
@@ -26,9 +27,24 @@ struct msm_thermal_data {
 #if defined(CONFIG_MACH_APQ8064_GVAR_CMCC) || defined(CONFIG_MACH_APQ8064_AWIFI)
 	uint32_t limit_temp_degC_low;
 #endif	
+=======
+#ifdef CONFIG_INTELLI_THERMAL
+	int32_t limit_temp_degC;
+	int32_t temp_hysteresis_degC;
+	uint32_t freq_step;
+	uint32_t freq_control_mask;
+	int32_t core_limit_temp_degC;
+	int32_t core_temp_hysteresis_degC;
+	uint32_t core_control_mask;
+#else
+	uint32_t limit_temp_degC;
+	uint32_t temp_hysteresis_degC;
+	uint32_t freq_step;
+#endif
+>>>>>>> f28916a... intelli/msm_thermal: initial coding for Qualcomm S4 Pro devices
 };
 
-#ifdef CONFIG_THERMAL_MONITOR
+#if defined(CONFIG_THERMAL_MONITOR) || defined(CONFIG_INTELLI_THERMAL)
 extern int msm_thermal_init(struct msm_thermal_data *pdata);
 extern int msm_thermal_device_init(void);
 #else
