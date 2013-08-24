@@ -217,3 +217,5 @@ obj-$(CONFIG_SND_SOC_TPA2028D_DUAL_SPEAKER) += tpa2028d_dual_speaker.o
 
 # Hack
 obj-$(CONFIG_SOUND_CONTROL_HAX_GPL) += sound_control_gpl.o
+obj-$(CONFIG_SOUND_CONTROL_HAX_3_GPL) += sound_control_3_gpl.o
+
