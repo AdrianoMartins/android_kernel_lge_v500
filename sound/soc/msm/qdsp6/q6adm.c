@@ -412,7 +412,7 @@ static void send_adm_cal(int port_id, int path)
 	int			result = 0;
 	s32			acdb_path;
 	struct acdb_cal_block	aud_cal;
-	int count = 1;
+	int flag = 0;
 	int index = afe_get_port_index(port_id);
 
 	pr_debug("%s\n", __func__);
@@ -450,7 +450,7 @@ static void send_adm_cal(int port_id, int path)
 			pr_debug("%s: Audproc cal not sent for port id: %d, path %d\n",
 				__func__, port_id, acdb_path);
 		this_adm.prev_index = index;
-		count = 2;
+		flag = 1;
 	}
 
 	pr_debug("%s: Sending audvol cal\n", __func__);
@@ -474,7 +474,7 @@ static void send_adm_cal(int port_id, int path)
 		else
 			mem_addr_audvol[acdb_path] = aud_cal;
 	}
-	if ((this_adm.prev_index == index) && (count == 2)) {
+	if ((this_adm.prev_index == index) && (flag == 1)) {
 		if (!send_adm_cal_block(port_id, &aud_cal))
 			pr_debug("%s: Audvol cal sent for port id: %d, path %d\n",
 				__func__, port_id, acdb_path);
@@ -695,8 +695,8 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology)
 				rate = 16000;
 		}
 
-        if ((open.topology_id  == 0) || (port_id == VOICE_RECORD_RX) || (port_id == VOICE_RECORD_TX))
-          open.topology_id = topology;
+		if (open.topology_id  == 0)
+			open.topology_id = topology;
 
 		open.channel_config = channel_mode & 0x00FF;
 		open.rate  = rate;
@@ -850,8 +850,8 @@ int adm_multi_ch_copp_open(int port_id, int path, int rate, int channel_mode,
 				rate = 16000;
 		}
 
-        if ((open.topology_id  == 0) || (port_id == VOICE_RECORD_RX) || (port_id == VOICE_RECORD_TX))
-          open.topology_id = topology;
+		if (open.topology_id  == 0)
+			open.topology_id = topology;
 
 		open.channel_config = channel_mode & 0x00FF;
 		open.rate  = rate;
@@ -983,17 +983,10 @@ int adm_matrix_map(int session_id, int path, int num_copps,
 	for (i = 0; i < num_copps; i++)
 		send_adm_cal(port_id[i], path);
 
-	for (i = 0; i < num_copps; i++) {
-		int tmp;
-		tmp = afe_get_port_index(port_id[i]);
-		if (tmp >= 0 && tmp < AFE_MAX_PORTS)
-			rtac_add_adm_device(port_id[i],
-				atomic_read(&this_adm.copp_id[tmp]),
-				path, session_id);
-		else
-			pr_debug("%s: Invalid port index %d",
-				__func__, tmp);
-	}
+	for (i = 0; i < num_copps; i++)
+		rtac_add_adm_device(port_id[i],	atomic_read(&this_adm.copp_id
+			[afe_get_port_index(port_id[i])]),
+			path, session_id);
 	return 0;
 
 fail_cmd:
