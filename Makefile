@@ -372,7 +372,7 @@ KBUILD_CPPFLAGS := -D__KERNEL__
 #
 # AK LINARO OPT
 #
-CFLAGS_A15 = -mtune=cortex-a15 -marm -mfpu=neon-vfpv4 -fgcse-las \
+CFLAGS_A15 = -mtune=cortex-a15 -marm -mfpu=neon-vfpv4 \
 	     -fgcse-sm -fgcse-after-reload -fgcse-las -fsched-spec-load \
 	     -ffast-math -munaligned-access -fsingle-precision-constant -fipa-pta
 CFLAGS_MODULO = -fmodulo-sched -fmodulo-sched-allow-regmoves
