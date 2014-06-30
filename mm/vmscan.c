@@ -2569,6 +2569,7 @@ loop_again:
 			if ((buffer_heads_over_limit && is_highmem_idx(i)) ||
 			    !zone_balanced(zone, testorder,
 					   balance_gap, end_zone)) {
+
 				shrink_zone(zone, &sc);
 
 				reclaim_state->reclaimed_slab = 0;
