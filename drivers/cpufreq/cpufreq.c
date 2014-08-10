@@ -29,12 +29,10 @@
 #include <linux/completion.h>
 #include <linux/mutex.h>
 #include <linux/syscore_ops.h>
+#include <linux/kernel_stat.h>
+#include <linux/tick.h>
 
 #include <trace/events/power.h>
-
-#ifdef CONFIG_LGE_PM_LOW_BATT_CHG
-#include <mach/board_lge.h>
-#endif
 
 /**
  * The "cpufreq driver" - the arch- or hardware-dependent low
@@ -145,6 +143,41 @@ void disable_cpufreq(void)
 }
 static LIST_HEAD(cpufreq_governor_list);
 static DEFINE_MUTEX(cpufreq_governor_mutex);
+
+static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
+{
+        u64 idle_time;
+        u64 cur_wall_time;
+        u64 busy_time;
+
+        cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
+
+        busy_time = kcpustat_cpu(cpu).cpustat[CPUTIME_USER];
+        busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM];
+        busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ];
+        busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ];
+        busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL];
+        busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_NICE];
+
+        idle_time = cur_wall_time - busy_time;
+        if (wall)
+                *wall = cputime_to_usecs(cur_wall_time);
+
+        return cputime_to_usecs(idle_time);
+}
+
+u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
+{
+        u64 idle_time = get_cpu_idle_time_us(cpu, io_busy ? wall : NULL);
+
+        if (idle_time == -1ULL)
+                return get_cpu_idle_time_jiffy(cpu, wall);
+        else if (!io_busy)
+                idle_time += get_cpu_iowait_time_us(cpu, wall);
+
+        return idle_time;
+}
+EXPORT_SYMBOL_GPL(get_cpu_idle_time);
 
 static struct cpufreq_policy *__cpufreq_cpu_get(unsigned int cpu, int sysfs)
 {
@@ -324,10 +357,6 @@ void cpufreq_notify_utilization(struct cpufreq_policy *policy,
 {
 	if (policy)
 		policy->util = util;
-
-	if (policy->util >= MIN_CPU_UTIL_NOTIFY)
-		sysfs_notify(&policy->kobj, NULL, "cpu_utilization");
-
 }
 
 /*********************************************************************
@@ -439,8 +468,12 @@ static ssize_t store_##file_name					\
 	if (ret != 1)							\
 		return -EINVAL;						\
 									\
+	ret = cpufreq_driver->verify(&new_policy);			\
+	if (ret)							\
+		pr_err("cpufreq: Frequency verification failed\n");	\
+									\
+	policy->user_policy.object = new_policy.object;			\
 	ret = __cpufreq_set_policy(policy, &new_policy);		\
-	policy->user_policy.object = policy->object;			\
 									\
 	return ret ? ret : count;					\
 }
@@ -623,6 +656,22 @@ static ssize_t show_bios_limit(struct cpufreq_policy *policy, char *buf)
 	return sprintf(buf, "%u\n", policy->cpuinfo.max_freq);
 }
 
+#ifdef CONFIG_USERSPACE_VOLTAGE_CONTROL
+
+extern ssize_t acpuclk_get_vdd_levels_str(char *buf);
+extern void acpuclk_set_vdd(const char *buf);
+
+static ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf) {
+	return acpuclk_get_vdd_levels_str(buf);
+}
+
+static ssize_t store_UV_mV_table(struct cpufreq_policy *policy, const char *buf, size_t count) {
+	acpuclk_set_vdd(buf);
+	return count;
+}
+
+#endif
+
 cpufreq_freq_attr_ro_perm(cpuinfo_cur_freq, 0400);
 cpufreq_freq_attr_ro(cpuinfo_min_freq);
 cpufreq_freq_attr_ro(cpuinfo_max_freq);
@@ -638,6 +687,9 @@ cpufreq_freq_attr_rw(scaling_min_freq);
 cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
+#ifdef CONFIG_USERSPACE_VOLTAGE_CONTROL
+cpufreq_freq_attr_rw(UV_mV_table);
+#endif
 
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
@@ -652,6 +704,9 @@ static struct attribute *default_attrs[] = {
 	&scaling_driver.attr,
 	&scaling_available_governors.attr,
 	&scaling_setspeed.attr,
+#ifdef CONFIG_USERSPACE_VOLTAGE_CONTROL
+	&UV_mV_table.attr,
+#endif
 	NULL
 };
 
@@ -935,9 +990,6 @@ err_out_kobj_put:
  * with with cpu hotplugging and all hell will break loose. Tried to clean this
  * mess up, but more thorough testing is needed. - Mathieu
  */
-#ifdef CONFIG_LGE_PM_LOW_BATT_CHG
-extern struct cpufreq_governor cpufreq_gov_powersave;
-#endif
 static int cpufreq_add_dev(struct device *dev, struct subsys_interface *sif)
 {
 	unsigned int cpu = dev->id;
@@ -1005,14 +1057,6 @@ static int cpufreq_add_dev(struct device *dev, struct subsys_interface *sif)
 #endif
 	if (!found)
 		policy->governor = CPUFREQ_DEFAULT_GOVERNOR;
-
-#ifdef CONFIG_LGE_PM_LOW_BATT_CHG
-	if (!found && lge_get_charger_logo_state()) {
-		policy->governor = &cpufreq_gov_powersave;
-		pr_info("During chargerlogo, cpu %d governor=gov_powersave\n", cpu);
-	}
-#endif
-
 	/* call driver. From then on the cpufreq must be able
 	 * to accept all calls to ->verify and ->setpolicy for this CPU
 	 */
@@ -1021,8 +1065,17 @@ static int cpufreq_add_dev(struct device *dev, struct subsys_interface *sif)
 		pr_debug("initialization failed\n");
 		goto err_unlock_policy;
 	}
+
+	/*
+	 * affected cpus must always be the one, which are online. We aren't
+	 * managing offline cpus here.
+	 */
+	cpumask_and(policy->cpus, policy->cpus, cpu_online_mask);
+
 	policy->user_policy.min = policy->min;
 	policy->user_policy.max = policy->max;
+
+	policy->util = 0;
 
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
 				     CPUFREQ_START, policy);
@@ -1265,6 +1318,26 @@ static void cpufreq_out_of_sync(unsigned int cpu, unsigned int old_freq,
 	cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
 }
 
+/**
+ * cpufreq_quick_get_util - get the CPU utilization from policy->util
+ * @cpu: CPU number
+ *
+ * This is the last known util, without actually getting it from the driver.
+ * Return value will be same as what is shown in util in sysfs.
+ */
+unsigned int cpufreq_quick_get_util(unsigned int cpu)
+{
+	struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
+	unsigned int ret_util = 0;
+
+	if (policy) {
+		ret_util = policy->util;
+		cpufreq_cpu_put(policy);
+	}
+
+	return ret_util;
+}
+EXPORT_SYMBOL(cpufreq_quick_get_util);
 
 /**
  * cpufreq_quick_get - get the CPU frequency (in kHz) from policy->cur
@@ -1535,6 +1608,10 @@ int __cpufreq_driver_target(struct cpufreq_policy *policy,
 
 	pr_debug("target for CPU %u: %u kHz, relation %u\n", policy->cpu,
 		target_freq, relation);
+
+	if (target_freq == policy->cur)
+		return 0;
+
 	if (cpu_online(policy->cpu) && cpufreq_driver->target)
 		retval = cpufreq_driver->target(policy, target_freq, relation);
 
@@ -1735,7 +1812,8 @@ static int __cpufreq_set_policy(struct cpufreq_policy *data,
 	memcpy(&policy->cpuinfo, &data->cpuinfo,
 				sizeof(struct cpufreq_cpuinfo));
 
-	if (policy->min > data->max || policy->max < data->min) {
+	if (policy->min > data->user_policy.max
+		|| policy->max < data->user_policy.min) {
 		ret = -EINVAL;
 		goto error_out;
 	}
