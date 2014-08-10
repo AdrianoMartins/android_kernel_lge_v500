@@ -2319,27 +2319,11 @@ static struct platform_device msm_tsens_device = {
 };
 
 static struct msm_thermal_data msm_thermal_pdata = {
-	.sensor_id = 7,
-#ifdef CONFIG_MACH_LGE
-	.poll_ms = 1000,
-	.limit_temp_degC = 93,
-#if defined(CONFIG_MACH_APQ8064_GK_KR)||defined(CONFIG_MACH_APQ8064_GKATT) || defined(CONFIG_MACH_APQ8064_GKOPENHK) || defined(CONFIG_MACH_APQ8064_GKOPENTW) || defined(CONFIG_MACH_APQ8064_GKSHBSG) || defined(CONFIG_MACH_APQ8064_AWIFI)
-	.limit_temp_degC_low = 20,
-#endif
-#else
+	.sensor_id = 0,
 	.poll_ms = 250,
-	.limit_temp_degC = 60,
-#endif
-	.temp_hysteresis_degC = 10,
-	.freq_step = 2,
-#if defined(CONFIG_MACH_APQ8064_AWIFI)
-        // It is cause of MPdecision problem. so, changed to Higher value than Thermal_deamon's setting
-	.core_limit_temp_degC = 120,
-#else
-	.core_limit_temp_degC = 80,
-#endif
-	.core_temp_hysteresis_degC = 10,
-	.core_control_mask = 0xe,
+ 	.limit_temp_degC = 60,
+ 	.temp_hysteresis_degC = 10,
+ 	.freq_step = 2,
 };
 
 #define MSM_SHARED_RAM_PHYS 0x80000000
