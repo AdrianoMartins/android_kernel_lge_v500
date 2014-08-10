@@ -4304,13 +4304,7 @@ static void __init apq8064_cdp_init(void)
 		platform_device_register(&mpq_keypad_device);
 	}
 #endif /* LGE Not Used */
-//2013-05-29 goensoo.kim@lge.com [AWIFI/Touch] Enable atmel touchscreen driver for REV_A [START]
-	if (lge_get_board_revno() >= HW_REV_A) {
-		apq8064_awifi_init_input();
-	} else {
-		apq8064_init_input();
-	}
-//2013-05-29 goensoo.kim@lge.com [AWIFI/Touch] Enable atmel touchscreen driver for REV_A [END]
+	apq8064_awifi_init_input();
 	apq8064_init_misc();
 #ifdef CONFIG_LGE_ECO_MODE
 	lge_add_lge_kernel_devices();

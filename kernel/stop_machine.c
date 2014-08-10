@@ -320,7 +320,7 @@ static void cpu_stop_park(unsigned int cpu)
 	spin_unlock_irqrestore(&stopper->lock, flags);
 }
 
-tatic void cpu_stop_unpark(unsigned int cpu)
+static void cpu_stop_unpark(unsigned int cpu)
 {
 	struct cpu_stopper *stopper = &per_cpu(cpu_stopper, cpu);
 
