@@ -40,7 +40,13 @@
 #define MSM_AMP_EN (PM8921_GPIO_PM_TO_SYS(19))
 #define AGC_COMPRESIION_RATE        0
 #define AGC_OUTPUT_LIMITER_DISABLE  1
+/* AGC_FIXED_GAIN  on the amp datasheet default value is 6 */
 #define AGC_FIXED_GAIN              15
+/* AKT_TIME on the amp datasheet default value is 5 */
+#define AKT_TIME					6
+/* REL_TIME on the amp datasheet default value is 11 */
+#define REL_TIME					13 //4
+#define MAX_GAIN					12
 //[AUDIO_BSP][AWIFI] ilda.jung@lge.com 2013-04-16 enable dual speaker [START]
 #ifdef CONFIG_SND_SOC_TPA2028D_DUAL_SPEAKER
 #define MSM_AMP2_EN (PM8921_GPIO_PM_TO_SYS(20))
@@ -132,6 +138,9 @@ static struct audio_amp_platform_data amp_platform_data =  {
 	.agc_compression_rate = AGC_COMPRESIION_RATE,
 	.agc_output_limiter_disable = AGC_OUTPUT_LIMITER_DISABLE,
 	.agc_fixed_gain = AGC_FIXED_GAIN,
+	.atk_time = AKT_TIME,
+	.rel_time = REL_TIME,
+	.max_gain = MAX_GAIN,
 };
 #endif
 
@@ -192,6 +201,9 @@ static struct audio_amp_platform_data amp2_platform_data =  {
 	.agc_compression_rate = AGC_COMPRESIION_RATE,
 	.agc_output_limiter_disable = AGC_OUTPUT_LIMITER_DISABLE,
 	.agc_fixed_gain = AGC_FIXED_GAIN,
+	.atk_time = AKT_TIME,
+	.rel_time = REL_TIME,
+	.max_gain = MAX_GAIN,
 };
 
 #endif

@@ -14,9 +14,9 @@ cp arch/arm/boot/zImage ~/android/boot_aosp/kernel/
 echo ">>> copy modules to boot/system/lib/modules<"
 find ~/android/v500_aosp -name "*.ko" -exec cp {} ~/android/boot_aosp/system/lib/modules/ \;
 
-zipfile="mani.zip"
+zipfile="mani_aosp.zip"
 echo ">>> build zipfile"
-cd ~/android/boot/
+cd ~/android/boot_aosp/
 rm -f *.zip
 zip -9 -r $zipfile *
 rm -f /tmp/*.zip
