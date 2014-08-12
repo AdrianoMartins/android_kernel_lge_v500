@@ -17,6 +17,9 @@
  */
 #include <linux/gpio.h>
 #include <mach/board_lge.h>
+#ifdef CONFIG_FB_MSM_LCD_NOTIFY
+#include <linux/lcd_notify.h>
+#endif
 
 #include "msm_fb.h"
 #include "mipi_dsi.h"
@@ -121,7 +124,9 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 	if(local_mfd0 == NULL)
 		local_mfd0 = mfd;
 #endif
-
+#ifdef CONFIG_FB_MSM_LCD_NOTIFY
+	lcd_notifier_call_chain(LCD_EVENT_ON_START, NULL);
+#endif
 	printk(KERN_INFO "[LCD][DEBUG] %s is started \n", __func__);
 
 //LGE_UPDATE_S hj.eum@lge.com : adding change mipi mode to write register setting of LCD IC
@@ -173,7 +178,9 @@ int mipi_lgit_lcd_on(struct platform_device *pdev)
 	mdp4_overlay_dsi_video_start();
 	mdelay(120);
 //LGE_UPDATE_E hj.eum@lge.com : adding change mipi mode to write register setting of LCD IC
-
+#ifdef CONFIG_FB_MSM_LCD_NOTIFY
+	lcd_notifier_call_chain(LCD_EVENT_ON_END, NULL);
+#endif
 	printk(KERN_INFO "[LCD][DEBUG] %s is ended \n", __func__);
 
 	return cnt;
@@ -183,7 +190,10 @@ int mipi_lgit_lcd_off(struct platform_device *pdev)
 {
 	int cnt = 0;
 	struct msm_fb_data_type *mfd;
-	
+
+#ifdef CONFIG_FB_MSM_LCD_NOTIFY
+	lcd_notifier_call_chain(LCD_EVENT_OFF_START, NULL);
+#endif	
 	printk(KERN_INFO "[LCD][DEBUG] %s is started \n", __func__);
 
 	mfd =  platform_get_drvdata(pdev);
@@ -205,6 +215,10 @@ int mipi_lgit_lcd_off(struct platform_device *pdev)
 	}
 
 	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x14000000);//LP mode
+
+#ifdef CONFIG_FB_MSM_LCD_NOTIFY
+	lcd_notifier_call_chain(LCD_EVENT_OFF_END, NULL);
+#endif
 	printk(KERN_INFO "[LCD][DEBUG] %s is ended \n", __func__);
 
 	return cnt;
