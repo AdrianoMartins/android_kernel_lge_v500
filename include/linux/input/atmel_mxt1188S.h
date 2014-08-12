@@ -114,12 +114,6 @@ enum{
 	FINGER_PRESSED,
 	FINGER_MOVED
 };
-
-enum{
-	NOT_ACTIVE,
-	FIRST_PALM,
-	PALM_AND_FINGER
-};
 #endif
 
 /* The platform data for the Atmel maXTouch touchscreen driver */
