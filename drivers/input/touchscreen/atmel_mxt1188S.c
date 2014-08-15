@@ -36,7 +36,7 @@
 #include <linux/mutex.h>
 #include <linux/mfd/pm8xxx/cradle.h>
 
-#define DEBUG_ABS	0
+#define DEBUG_ABS	1
 
 /* Configuration file */
 #define MXT_CFG_MAGIC		"OBP_RAW V1"
@@ -2659,7 +2659,6 @@ static int tracking_stylus_coordinate(struct mxt_data *data) {
 }
 
 #ifdef CUST_A_TOUCH
-#if DEBUG_ABS
 static char* get_tool_type(struct mxt_data *data, struct t_data touch_data) {
 	if (touch_data.tool == MT_TOOL_FINGER) {
 		if (touch_data.is_pen) {
@@ -2674,7 +2673,6 @@ static char* get_tool_type(struct mxt_data *data, struct t_data touch_data) {
 	}
 	return "Unknown";
 }
-#endif
 
 static int mxt_soft_reset(struct mxt_data *data);
 #endif
@@ -2690,9 +2688,7 @@ static irqreturn_t mxt_process_messages_t44(struct mxt_data *data)
 	static int stylus_tracking_type = 0;
 	int report_num = 0;
 	int pen_count = 0;
-#if DEBUG_ABS
 	char *tool_type;
-#endif
 	int i;
 //	bool long_pressed = false;
 #endif
