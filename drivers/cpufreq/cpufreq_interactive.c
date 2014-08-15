@@ -154,6 +154,8 @@ static unsigned int up_threshold_any_cpu_load = 80;
 static unsigned int sync_freq = CPU_SYNC_FREQ;
 static unsigned int up_threshold_any_cpu_freq = 1100000;
 
+#define DOWN_LOW_LOAD_THRESHOLD 10
+
 static void cpufreq_interactive_timer_resched(
 	struct cpufreq_interactive_cpuinfo *pcpu)
 {
@@ -331,7 +333,7 @@ static unsigned int choose_freq(
 }
 #endif
 
-static unsigned int calc_freq(struct cpufreq_interactive_cpuinfo *pcpu, 
+static unsigned int calc_freq(struct cpufreq_interactive_cpuinfo *pcpu,
 	unsigned int load)
 {
 	unsigned int max = pcpu->policy->max;
@@ -416,6 +418,9 @@ static void cpufreq_interactive_timer(unsigned long data)
 			if (new_freq < hispeed_freq)
 				new_freq = hispeed_freq;
 		}
+	}
+	else if (cpu_load <= DOWN_LOW_LOAD_THRESHOLD) {
+		new_freq = pcpu->policy->cpuinfo.min_freq;
 	}
 	else
 	{
