@@ -38,7 +38,6 @@
 #define KGSL_CMD_FLAGS_PMODE		BIT(0)
 #define KGSL_CMD_FLAGS_INTERNAL_ISSUE   BIT(1)
 #define KGSL_CMD_FLAGS_WFI              BIT(2)
-#define KGSL_CMD_FLAGS_PWRON_FIXUP      BIT(3)
 
 /* Command identifiers */
 #define KGSL_CONTEXT_TO_MEM_IDENTIFIER	0x2EADBEEF
@@ -48,7 +47,6 @@
 #define KGSL_END_OF_IB_IDENTIFIER	0x2ABEDEAD
 #define KGSL_END_OF_FRAME_IDENTIFIER	0x2E0F2E0F
 #define KGSL_NOP_IB_IDENTIFIER	        0x20F20F20
-#define KGSL_PWRON_FIXUP_IDENTIFIER	0x2AFAFAFA
 
 #ifdef CONFIG_MSM_SCM
 #define ADRENO_DEFAULT_PWRSCALE_POLICY  (&kgsl_pwrscale_policy_tz)
@@ -57,8 +55,6 @@
 #else
 #define ADRENO_DEFAULT_PWRSCALE_POLICY  NULL
 #endif
-
-void adreno_debugfs_init(struct kgsl_device *device);
 
 #define ADRENO_ISTORE_START 0x5000 /* Istore offset */
 
@@ -185,8 +181,8 @@ struct adreno_device {
 	unsigned int ocmem_base;
 	unsigned int gpu_cycles;
 	struct adreno_dispatcher dispatcher;
-	struct kgsl_memdesc pwron_fixup;
-	unsigned int pwron_fixup_dwords;
+
+	struct work_struct start_work;
 };
 
 /**
@@ -199,7 +195,6 @@ enum adreno_device_flags {
 	ADRENO_DEVICE_PWRON = 0,
 	ADRENO_DEVICE_PWRON_FIXUP = 1,
 	ADRENO_DEVICE_INITIALIZED = 2,
-	ADRENO_DEVICE_STARTED = 3,
 };
 
 #define PERFCOUNTER_FLAG_NONE 0x0
@@ -308,7 +303,6 @@ enum adreno_regs {
 	ADRENO_REG_TC_CNTL_STATUS,
 	ADRENO_REG_TP0_CHICKEN,
 	ADRENO_REG_RBBM_RBBM_CTL,
-	ADRENO_REG_UCHE_INVALIDATE0,
 	ADRENO_REG_REGISTER_MAX,
 };
 
@@ -396,9 +390,7 @@ struct log_field {
 #define  KGSL_FT_SKIPFRAME                3
 #define  KGSL_FT_DISABLE                  4
 #define  KGSL_FT_TEMP_DISABLE             5
-#define  KGSL_FT_THROTTLE                 6
-#define  KGSL_FT_DEFAULT_POLICY (BIT(KGSL_FT_REPLAY) + BIT(KGSL_FT_SKIPIB) \
-				+ BIT(KGSL_FT_THROTTLE))
+#define  KGSL_FT_DEFAULT_POLICY (BIT(KGSL_FT_REPLAY) + BIT(KGSL_FT_SKIPIB))
 
 /* This internal bit is used to skip the PM dump on replayed command batches */
 #define  KGSL_FT_SKIP_PMDUMP              31
@@ -416,8 +408,15 @@ struct log_field {
 	{ BIT(KGSL_FT_SKIPIB), "skipib" }, \
 	{ BIT(KGSL_FT_SKIPFRAME), "skipframe" }, \
 	{ BIT(KGSL_FT_DISABLE), "disable" }, \
-	{ BIT(KGSL_FT_TEMP_DISABLE), "temp" }, \
-	{ BIT(KGSL_FT_THROTTLE), "throttle"}
+	{ BIT(KGSL_FT_TEMP_DISABLE), "temp" }
+
+#define ADRENO_FT_TYPES \
+	{ BIT(KGSL_FT_OFF), "off" }, \
+	{ BIT(KGSL_FT_REPLAY), "replay" }, \
+	{ BIT(KGSL_FT_SKIPIB), "skipib" }, \
+	{ BIT(KGSL_FT_SKIPFRAME), "skipframe" }, \
+	{ BIT(KGSL_FT_DISABLE), "disable" }, \
+	{ BIT(KGSL_FT_TEMP_DISABLE), "temp" }
 
 extern struct adreno_gpudev adreno_a2xx_gpudev;
 extern struct adreno_gpudev adreno_a3xx_gpudev;
@@ -512,7 +511,6 @@ int adreno_perfcounter_put(struct adreno_device *adreno_dev,
 
 int adreno_soft_reset(struct kgsl_device *device);
 
-int adreno_a3xx_pwron_fixup_init(struct adreno_device *adreno_dev);
 
 static inline int adreno_is_a200(struct adreno_device *adreno_dev)
 {
@@ -876,19 +874,10 @@ static inline void adreno_vbif_start(struct kgsl_device *device,
 	}
 }
 
-/**
- * adreno_get_rptr() - Get the current ringbuffer read pointer
- * @rb: Pointer the ringbuffer to query
- *
- * Get the current read pointer from the GPU register.
- */
-static inline unsigned int
-adreno_get_rptr(struct adreno_ringbuffer *rb)
-{
-	struct adreno_device *adreno_dev = ADRENO_DEVICE(rb->device);
-	unsigned int result;
-	adreno_readreg(adreno_dev, ADRENO_REG_CP_RB_RPTR, &result);
-	return result;
-}
+#ifdef CONFIG_DEBUG_FS
+void adreno_debugfs_init(struct kgsl_device *device);
+#else
+static inline void adreno_debugfs_init(struct kgsl_device *device) { }
+#endif
 
 #endif /*__ADRENO_H */

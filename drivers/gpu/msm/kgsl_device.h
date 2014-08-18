@@ -91,7 +91,7 @@ struct kgsl_functable {
 	bool (*isidle) (struct kgsl_device *device);
 	int (*suspend_context) (struct kgsl_device *device);
 	int (*init) (struct kgsl_device *device);
-	int (*start) (struct kgsl_device *device);
+	int (*start) (struct kgsl_device *device, int priority);
 	int (*stop) (struct kgsl_device *device);
 	int (*getproperty) (struct kgsl_device *device,
 		enum kgsl_property_type type, void *value,
@@ -359,9 +359,6 @@ struct kgsl_process_private;
  * @pagefault: flag set if this context caused a pagefault.
  * @pagefault_ts: global timestamp of the pagefault, if KGSL_CONTEXT_PAGEFAULT
  * is set.
- * @fault_count: number of times gpu hanged in last _context_throttle_time ms
- * @fault_time: time of the first gpu hang in last _context_throttle_time ms
->>>>>>> 28ee7f6... msm: kgsl: Enhance GFT to avoid hang->recover->hang cycle
  */
 struct kgsl_context {
 	struct kref refcount;
@@ -377,12 +374,25 @@ struct kgsl_context {
 	struct list_head events;
 	struct list_head events_list;
 	unsigned int pagefault_ts;
-	unsigned int fault_count;
-	unsigned long fault_time;
 };
 
+/**
+ * struct kgsl_process_private -  Private structure for a KGSL process (across
+ * all devices)
+ * @priv: Internal flags, use KGSL_PROCESS_* values
+ * @pid: ID for the task owner of the process
+ * @mem_lock: Spinlock to protect the process memory lists
+ * @refcount: kref object for reference counting the process
+ * @process_private_mutex: Mutex to synchronize access to the process struct
+ * @mem_rb: RB tree node for the memory owned by this process
+ * @idr: Iterator for assigning IDs to memory allocations
+ * @pagetable: Pointer to the pagetable owned by this process
+ * @kobj: Pointer to a kobj for the sysfs directory for this process
+ * @debug_root: Pointer to the debugfs root for this process
+ * @stats: Memory allocation statistics for this process
+ */
 struct kgsl_process_private {
-	unsigned int refcnt;
+	unsigned long priv;
 	pid_t pid;
 	spinlock_t mem_lock;
 
@@ -402,6 +412,14 @@ struct kgsl_process_private {
 		unsigned int cur;
 		unsigned int max;
 	} stats[KGSL_MEM_ENTRY_MAX];
+};
+
+/**
+ * enum kgsl_process_priv_flags - Private flags for kgsl_process_private
+ * @KGSL_PROCESS_INIT: Set if the process structure has been set up
+ */
+enum kgsl_process_priv_flags {
+	KGSL_PROCESS_INIT = 0,
 };
 
 struct kgsl_device_private {
@@ -738,4 +756,23 @@ static inline void kgsl_trace_gpu_sched_switch(const char *name,
 
 #endif
 
+/**
+ * kgsl_sysfs_store() - parse a string from a sysfs store function
+ * @buf: Incoming string to parse
+ * @ptr: Pointer to an unsigned int to store the value
+ */
+static inline int kgsl_sysfs_store(const char *buf, unsigned int *ptr)
+{
+	unsigned int val;
+	int rc;
+
+	rc = kstrtou32(buf, 0, &val);
+	if (rc)
+		return rc;
+
+	if (ptr)
+		*ptr = val;
+
+	return 0;
+}
 #endif  /* __KGSL_DEVICE_H */

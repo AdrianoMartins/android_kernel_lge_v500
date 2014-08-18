@@ -645,6 +645,7 @@ static int kgsl_suspend_device(struct kgsl_device *device, pm_message_t state)
 		case KGSL_STATE_SLEEP:
 			/* make sure power is on to stop the device */
 			kgsl_pwrctrl_enable(device);
+			kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_ON);
 			/* Get the completion ready to be waited upon. */
 			INIT_COMPLETION(device->hwaccess_gate);
 			device->ftbl->suspend_context(device);
@@ -893,11 +894,7 @@ kgsl_get_process_private(struct kgsl_device_private *cur_dev_priv)
 
 	mutex_lock(&private->process_private_mutex);
 
-	/*
-	 * If debug root initialized then it means the rest of the fields
-	 * are also initialized
-	 */
-	if (private->debug_root)
+	if (test_bit(KGSL_PROCESS_INIT, &private->priv))
 		goto done;
 
 	private->mem_rb = RB_ROOT;
@@ -917,6 +914,8 @@ kgsl_get_process_private(struct kgsl_device_private *cur_dev_priv)
 		goto error;
 	if (kgsl_process_init_debugfs(private))
 		goto error;
+
+	set_bit(KGSL_PROCESS_INIT, &private->priv);
 
 done:
 	mutex_unlock(&private->process_private_mutex);
@@ -1020,7 +1019,7 @@ int kgsl_open_device(struct kgsl_device *device)
 		if (result)
 			goto err;
 
-		result = device->ftbl->start(device);
+		result = device->ftbl->start(device, 0);
 		if (result)
 			goto err;
 		/*
@@ -1105,7 +1104,7 @@ err_stop:
 	if (device->open_count == 0) {
 		/* make sure power is on to stop the device */
 		kgsl_pwrctrl_enable(device);
-		device->ftbl->stop(device);
+		result = device->ftbl->stop(device);
 		kgsl_pwrctrl_set_state(device, KGSL_STATE_INIT);
 		atomic_dec(&device->active_cnt);
 	}
@@ -3647,7 +3646,7 @@ err_put:
 static inline bool
 mmap_range_valid(unsigned long addr, unsigned long len)
 {
-	return (addr + len) > addr && (addr + len) < TASK_SIZE;
+	return ((ULONG_MAX - addr) > len) && ((addr + len) < TASK_SIZE);
 }
 
 static unsigned long
@@ -4139,7 +4138,7 @@ int kgsl_postmortem_dump(struct kgsl_device *device, int manual)
 	del_timer_sync(&device->idle_timer);
 
 	/* Force on the clocks */
-	kgsl_pwrctrl_wake(device);
+	kgsl_pwrctrl_wake(device, 0);
 
 	/* Disable the irq */
 	kgsl_pwrctrl_irq(device, KGSL_PWRFLAGS_OFF);

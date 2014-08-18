@@ -139,12 +139,12 @@ kgsl_get_pagetable(unsigned long name)
 static struct kgsl_pagetable *
 _get_pt_from_kobj(struct kobject *kobj)
 {
-	unsigned long ptname;
+	unsigned int ptname;
 
 	if (!kobj)
 		return NULL;
 
-	if (sscanf(kobj->name, "%ld", &ptname) != 1)
+	if (kstrtou32(kobj->name, 0, &ptname))
 		return NULL;
 
 	return kgsl_get_pagetable(ptname);
@@ -385,10 +385,6 @@ int kgsl_mmu_init(struct kgsl_device *device)
 	status = kgsl_allocate_contiguous(&mmu->setstate_memory, PAGE_SIZE);
 	if (status)
 		return status;
-
-	/* Mark the setstate memory as read only */
-	mmu->setstate_memory.flags |= KGSL_MEMFLAGS_GPUREADONLY;
-
 	kgsl_sharedmem_set(device, &mmu->setstate_memory, 0, 0,
 				mmu->setstate_memory.size);
 

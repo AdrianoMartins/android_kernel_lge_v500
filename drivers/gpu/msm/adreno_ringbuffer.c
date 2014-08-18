@@ -314,28 +314,63 @@ int adreno_ringbuffer_load_pfp_ucode(struct kgsl_device *device,
 int _ringbuffer_start_common(struct adreno_ringbuffer *rb)
 {
 	int status;
+	union reg_cp_rb_cntl cp_rb_cntl;
+	unsigned int rb_cntl;
 	struct kgsl_device *device = rb->device;
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 
 	if (rb->flags & KGSL_FLAGS_STARTED)
 		return 0;
 
+	kgsl_sharedmem_set(rb->device, &rb->memptrs_desc, 0, 0,
+			   sizeof(struct kgsl_rbmemptrs));
+
 	kgsl_sharedmem_set(rb->device, &rb->buffer_desc, 0, 0xAA,
 			   (rb->sizedwords << 2));
 
+	if (adreno_is_a2xx(adreno_dev)) {
+		kgsl_regwrite(device, REG_CP_RB_WPTR_BASE,
+			(rb->memptrs_desc.gpuaddr
+			+ GSL_RB_MEMPTRS_WPTRPOLL_OFFSET));
+
+		/* setup WPTR delay */
+		kgsl_regwrite(device, REG_CP_RB_WPTR_DELAY,
+			0 /*0x70000010 */);
+	}
+
+	/*setup REG_CP_RB_CNTL */
+	adreno_readreg(adreno_dev, ADRENO_REG_CP_RB_CNTL, &rb_cntl);
+	cp_rb_cntl.val = rb_cntl;
+
 	/*
 	 * The size of the ringbuffer in the hardware is the log2
-	 * representation of the size in quadwords (sizedwords / 2).
-	 * Also disable the host RPTR shadow register as it might be unreliable
-	 * in certain circumstances.
+	 * representation of the size in quadwords (sizedwords / 2)
 	 */
+	cp_rb_cntl.f.rb_bufsz = ilog2(rb->sizedwords >> 1);
 
-	adreno_writereg(adreno_dev, ADRENO_REG_CP_RB_CNTL,
-		(ilog2(rb->sizedwords >> 1) & 0x3F) |
-		(1 << 27));
+	/*
+	 * Specify the quadwords to read before updating mem RPTR.
+	 * Like above, pass the log2 representation of the blocksize
+	 * in quadwords.
+	*/
+	cp_rb_cntl.f.rb_blksz = ilog2(KGSL_RB_BLKSIZE >> 3);
+
+	if (adreno_is_a2xx(adreno_dev)) {
+		/* WPTR polling */
+		cp_rb_cntl.f.rb_poll_en = GSL_RB_CNTL_POLL_EN;
+	}
+
+	/* mem RPTR writebacks */
+	cp_rb_cntl.f.rb_no_update =  GSL_RB_CNTL_NO_UPDATE;
+
+	adreno_writereg(adreno_dev, ADRENO_REG_CP_RB_CNTL, cp_rb_cntl.val);
 
 	adreno_writereg(adreno_dev, ADRENO_REG_CP_RB_BASE,
 					rb->buffer_desc.gpuaddr);
+
+	adreno_writereg(adreno_dev, ADRENO_REG_CP_RB_RPTR_ADDR,
+				rb->memptrs_desc.gpuaddr +
+				GSL_RB_MEMPTRS_RPTR_OFFSET);
 
 	if (adreno_is_a2xx(adreno_dev)) {
 		/* explicitly clear all cp interrupts */
@@ -462,6 +497,20 @@ int adreno_ringbuffer_init(struct kgsl_device *device)
 		return status;
 	}
 
+	/* allocate memory for polling and timestamps */
+	/* This really can be at 4 byte alignment boundry but for using MMU
+	 * we need to make it at page boundary */
+	status = kgsl_allocate_contiguous(&rb->memptrs_desc,
+		sizeof(struct kgsl_rbmemptrs));
+
+	if (status != 0) {
+		adreno_ringbuffer_close(rb);
+		return status;
+	}
+
+	/* overlay structure on memptrs memory */
+	rb->memptrs = (struct kgsl_rbmemptrs *) rb->memptrs_desc.hostptr;
+
 	rb->global_ts = 0;
 
 	return 0;
@@ -472,6 +521,7 @@ void adreno_ringbuffer_close(struct adreno_ringbuffer *rb)
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(rb->device);
 
 	kgsl_sharedmem_free(&rb->buffer_desc);
+	kgsl_sharedmem_free(&rb->memptrs_desc);
 
 	kfree(adreno_dev->pfp_fw);
 	kfree(adreno_dev->pm4_fw);
@@ -528,8 +578,7 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 	total_sizedwords += (flags & KGSL_CMD_FLAGS_INTERNAL_ISSUE) ? 2 : 0;
 
 	/* Add two dwords for the CP_INTERRUPT */
-	total_sizedwords +=
-		(drawctxt || (flags & KGSL_CMD_FLAGS_INTERNAL_ISSUE)) ?  2 : 0;
+	total_sizedwords += drawctxt ? 2 : 0;
 
 	/* context rollover */
 	if (adreno_is_a3xx(adreno_dev))
@@ -556,10 +605,6 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 	if (flags & KGSL_CMD_FLAGS_WFI)
 		total_sizedwords += 2; /* WFI */
 
-	/* Add space for the power on shader fixup if we need it */
-	if (flags & KGSL_CMD_FLAGS_PWRON_FIXUP)
-		total_sizedwords += 5;
-
 	ringcmds = adreno_ringbuffer_allocspace(rb, drawctxt, total_sizedwords);
 
 	if (IS_ERR(ringcmds))
@@ -577,18 +622,6 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 		GSL_RB_WRITE(rb->device, ringcmds, rcmd_gpu, cp_nop_packet(1));
 		GSL_RB_WRITE(rb->device, ringcmds, rcmd_gpu,
 				KGSL_CMD_INTERNAL_IDENTIFIER);
-	}
-
-	if (flags & KGSL_CMD_FLAGS_PWRON_FIXUP) {
-		GSL_RB_WRITE(rb->device, ringcmds, rcmd_gpu, cp_nop_packet(1));
-		GSL_RB_WRITE(rb->device, ringcmds, rcmd_gpu,
-				KGSL_PWRON_FIXUP_IDENTIFIER);
-		GSL_RB_WRITE(rb->device, ringcmds, rcmd_gpu,
-			CP_HDR_INDIRECT_BUFFER_PFD);
-		GSL_RB_WRITE(rb->device, ringcmds, rcmd_gpu,
-			adreno_dev->pwron_fixup.gpuaddr);
-		GSL_RB_WRITE(rb->device, ringcmds, rcmd_gpu,
-			adreno_dev->pwron_fixup_dwords);
 	}
 
 	/* start-of-pipeline timestamp */
@@ -1084,15 +1117,6 @@ int adreno_ringbuffer_submitcmd(struct adreno_device *adreno_dev,
 
 	if (test_bit(CMDBATCH_FLAG_WFI, &cmdbatch->priv))
 		flags = KGSL_CMD_FLAGS_WFI;
-
-	/*
-	 * For some targets, we need to execute a dummy shader operation after a
-	 * power collapse
-	 */
-
-	if (test_and_clear_bit(ADRENO_DEVICE_PWRON, &adreno_dev->priv) &&
-		test_bit(ADRENO_DEVICE_PWRON_FIXUP, &adreno_dev->priv))
-		flags |= KGSL_CMD_FLAGS_PWRON_FIXUP;
 
 	ret = adreno_ringbuffer_addcmds(&adreno_dev->ringbuffer,
 					drawctxt,
