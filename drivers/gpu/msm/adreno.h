@@ -38,6 +38,7 @@
 #define KGSL_CMD_FLAGS_PMODE		BIT(0)
 #define KGSL_CMD_FLAGS_INTERNAL_ISSUE   BIT(1)
 #define KGSL_CMD_FLAGS_WFI              BIT(2)
+#define KGSL_CMD_FLAGS_PWRON_FIXUP      BIT(3)
 
 /* Command identifiers */
 #define KGSL_CONTEXT_TO_MEM_IDENTIFIER	0x2EADBEEF
@@ -47,6 +48,7 @@
 #define KGSL_END_OF_IB_IDENTIFIER	0x2ABEDEAD
 #define KGSL_END_OF_FRAME_IDENTIFIER	0x2E0F2E0F
 #define KGSL_NOP_IB_IDENTIFIER	        0x20F20F20
+#define KGSL_PWRON_FIXUP_IDENTIFIER	0x2AFAFAFA
 
 #ifdef CONFIG_MSM_SCM
 #define ADRENO_DEFAULT_PWRSCALE_POLICY  (&kgsl_pwrscale_policy_tz)
@@ -55,6 +57,8 @@
 #else
 #define ADRENO_DEFAULT_PWRSCALE_POLICY  NULL
 #endif
+
+void adreno_debugfs_init(struct kgsl_device *device);
 
 #define ADRENO_ISTORE_START 0x5000 /* Istore offset */
 
@@ -181,8 +185,8 @@ struct adreno_device {
 	unsigned int ocmem_base;
 	unsigned int gpu_cycles;
 	struct adreno_dispatcher dispatcher;
-
-	struct work_struct start_work;
+	struct kgsl_memdesc pwron_fixup;
+	unsigned int pwron_fixup_dwords;
 };
 
 /**
@@ -511,6 +515,7 @@ int adreno_perfcounter_put(struct adreno_device *adreno_dev,
 
 int adreno_soft_reset(struct kgsl_device *device);
 
+int adreno_a3xx_pwron_fixup_init(struct adreno_device *adreno_dev);
 
 static inline int adreno_is_a200(struct adreno_device *adreno_dev)
 {
@@ -873,11 +878,5 @@ static inline void adreno_vbif_start(struct kgsl_device *device,
 		vbif++;
 	}
 }
-
-#ifdef CONFIG_DEBUG_FS
-void adreno_debugfs_init(struct kgsl_device *device);
-#else
-static inline void adreno_debugfs_init(struct kgsl_device *device) { }
-#endif
 
 #endif /*__ADRENO_H */
