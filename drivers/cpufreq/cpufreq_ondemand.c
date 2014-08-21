@@ -82,10 +82,10 @@ struct cpufreq_governor cpufreq_gov_ondemand = {
 enum {DBS_NORMAL_SAMPLE, DBS_SUB_SAMPLE};
 
 struct cpu_dbs_info_s {
-	u64 prev_cpu_idle;
-	u64 prev_cpu_iowait;
-	u64 prev_cpu_wall;
-	u64 prev_cpu_nice;
+	cputime64_t prev_cpu_idle;
+	cputime64_t prev_cpu_iowait;
+	cputime64_t prev_cpu_wall;
+	cputime64_t prev_cpu_nice;
 	/*
 	 * Used to keep track of load in the previous interval. However, when
 	 * explicitly set to zero, it is used as a flag to ensure that we copy
@@ -167,7 +167,8 @@ static inline u64 get_cpu_idle_time_jiffy(unsigned int cpu, u64 *wall)
 	return jiffies_to_usecs(idle_time);
 }
 
-static inline u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
+static inline cputime64_t get_cpu_idle_time(unsigned int cpu, cputime64_t *wall,
+								int io_busy)
 {
 	u64 idle_time = get_cpu_idle_time_us(cpu, io_busy ? wall : NULL);
 
@@ -688,7 +689,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 	for_each_cpu(j, policy->cpus) {
 		struct cpu_dbs_info_s *j_dbs_info;
-		u64 cur_wall_time, cur_idle_time;
+		cputime64_t cur_wall_time, cur_idle_time;
 		unsigned int idle_time, wall_time;
 		int io_busy = dbs_tuners_ins.io_is_busy;
 
