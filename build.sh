@@ -8,7 +8,7 @@ cp arch/arm/boot/zImage ~/anykernel/
  
 cd ~/anykernel/
  
-zipfile="victor.Kernel-nightly.zip"
+zipfile="RedKernel-rXXX.zip"
 echo "making zip file"
 cp zImage zip/kernel/
  
