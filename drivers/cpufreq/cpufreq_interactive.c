@@ -85,7 +85,7 @@ static unsigned int sampling_down_factor = DEFAULT_SAMPLING_DOWN_FACTOR;
 #define FIRSTFREQ	1300000
 #define SECONDLOAD	90
 #define SECONDFREQ	1400000
-#define THIRDLOAD	70
+#define THIRDLOAD	95
 static unsigned int default_target_loads[5] = {FIRSTLOAD, FIRSTFREQ, SECONDLOAD, SECONDFREQ, THIRDLOAD};
 static spinlock_t target_loads_lock;
 static unsigned int *target_loads = default_target_loads;
@@ -112,7 +112,7 @@ static unsigned long timer_rate = DEFAULT_TIMER_RATE;
  */
 #define WAITFIRST	50000
 #define WAITSECOND	60000
-#define WAITTHIRD	40000
+#define WAITTHIRD	70000
 static unsigned int default_above_hispeed_delay[5] = {WAITFIRST, FIRSTFREQ, WAITSECOND, SECONDFREQ, WAITTHIRD};
 static spinlock_t above_hispeed_delay_lock;
 static unsigned int *above_hispeed_delay = default_above_hispeed_delay;
@@ -137,11 +137,11 @@ static bool io_is_busy = true;
  * The CPU will be boosted to this frequency when the screen is
  * touched. input_boost needs to be enabled.
  */
-#define DEFAULT_INPUT_BOOST_FREQ 1242000
+#define DEFAULT_INPUT_BOOST_FREQ 1134000
 int input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
 extern u64 last_input_time;
 
-#define CPU_SYNC_FREQ 810000
+#define CPU_SYNC_FREQ 702000
 
 /*
  * If the max load among other CPUs is higher than up_threshold_any_cpu_load
@@ -155,7 +155,6 @@ static unsigned int sync_freq = CPU_SYNC_FREQ;
 static unsigned int up_threshold_any_cpu_freq = 1200000;
 
 #define DOWN_LOW_LOAD_THRESHOLD 13
-static bool idle_notifier = false;
 
 static void cpufreq_interactive_timer_resched(
 	struct cpufreq_interactive_cpuinfo *pcpu)
@@ -535,7 +534,7 @@ rearm_if_notmax:
 	 * Already set max speed and don't see a need to change that,
 	 * wait until next idle to re-evaluate, don't need timer.
 	 */
-	if (idle_notifier && pcpu->target_freq == pcpu->policy->max)
+	if (pcpu->target_freq == pcpu->policy->max)
 		goto exit;
 
 rearm:
@@ -1260,13 +1259,8 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 					&thread_migration_nb);
 
 		idle_notifier_register(&cpufreq_interactive_idle_nb);
-		
-		if (idle_notifier)
-		{
-			cpufreq_register_notifier(
-				&cpufreq_notifier_block, CPUFREQ_TRANSITION_NOTIFIER);
-		}
-
+		cpufreq_register_notifier(
+			&cpufreq_notifier_block, CPUFREQ_TRANSITION_NOTIFIER);
 		mutex_unlock(&gov_lock);
 		break;
 
@@ -1291,12 +1285,8 @@ static int cpufreq_governor_interactive(struct cpufreq_policy *policy,
 				&migration_notifier_head,
 				&thread_migration_nb);
 
-		if (idle_notifier)
-		{
-			cpufreq_unregister_notifier(
-				&cpufreq_notifier_block, CPUFREQ_TRANSITION_NOTIFIER);
-		}		
-
+		cpufreq_unregister_notifier(
+			&cpufreq_notifier_block, CPUFREQ_TRANSITION_NOTIFIER);
 		idle_notifier_unregister(&cpufreq_interactive_idle_nb);
 		sysfs_remove_group(cpufreq_global_kobject,
 				&interactive_attr_group);
