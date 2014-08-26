@@ -175,7 +175,7 @@ struct t9_range {
 #define MXT_LATEST_CONFIG_CRC	0x331A2D
 #ifdef CONFIG_TOUCHSCREEN_ATMEL_KNOCK_ON
 u8 latest_firmware[] = {
-	#include "mXT1188SC09_V1.0.AA_extid_29_.h"
+	#include "mXT1188SC09_V1.1.AA_extid_29_.h"
 };
 #else
 u8 latest_firmware[] = {
