@@ -97,8 +97,6 @@ static struct workqueue_struct *wq;
 static struct delayed_work decide_hotplug;
 static struct work_struct suspend, resume;
 
-extern bool boosted;
-
 inline static void cpus_online_work(void)
 {
 	unsigned int cpu;
@@ -132,7 +130,7 @@ inline static bool cpus_cpufreq_work(void)
 		current_freq += cpufreq_quick_get(cpu);
 	}
 
-	return (current_freq /= 2) >= t->cpufreq_unplug_limit;
+	return (current_freq >> 1) >= t->cpufreq_unplug_limit;
 }
 
 static void cpu_revive(unsigned int load)
@@ -174,7 +172,7 @@ static void cpu_smash(void)
 	 * CPUFREQ_UNPLUG_LIMIT. Else update the timestamp to now and
 	 * postpone the cpu offline process to at least another second
 	 */
-	if (cpus_cpufreq_work() && !boosted)
+	if (cpus_cpufreq_work())
 	{
 		stats.timestamp = ktime_to_us(ktime_get());
 	}
@@ -240,7 +238,7 @@ static void __ref decide_hotplug_func(struct work_struct *work)
 		cur_load += cpufreq_quick_get_util(cpu);
 	}
 
-	if (cur_load >= (t->load_threshold * 2))
+	if (cur_load >= (t->load_threshold << 1))
 	{
 		if (stats.counter < t->max_load_counter)
 			++stats.counter;
