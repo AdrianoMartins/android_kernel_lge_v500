@@ -31,25 +31,32 @@
 
 #define MAKO_HOTPLUG "mako_hotplug"
 
-#define DEFAULT_LOAD_THRESHOLD 85
+#define DEFAULT_LOAD_THRESHOLD 80
 #define DEFAULT_HIGH_LOAD_COUNTER 15
 #define DEFAULT_MAX_LOAD_COUNTER 15
-#define DEFAULT_CPUFREQ_UNPLUG_LIMIT 1242000
+#define DEFAULT_CPUFREQ_UNPLUG_LIMIT 1200000
 #define DEFAULT_MIN_TIME_CPU_ONLINE 1
 #define DEFAULT_TIMER 2
 
 #define MIN_CPU_UP_US 1000 * USEC_PER_MSEC;
 #define NUM_POSSIBLE_CPUS num_possible_cpus()
 #define HIGH_LOAD 90 * 2
+#define MAX_FREQ_CAP 1036800
 
 struct cpu_stats
 {
 	unsigned int online_cpus;
 	unsigned int counter;
 	u64 timestamp;
+	uint32_t freq;
+	bool screen_cap_lock;
+	bool suspend;
 } stats = {
 	.counter = 0,
 	.timestamp = 0,
+	.freq = 0,
+	.screen_cap_lock = false,
+	.suspend = false,
 };
 
 struct hotplug_tunables
@@ -212,7 +219,7 @@ static void __ref decide_hotplug_func(struct work_struct *work)
 	 * reschedule early when the system has woken up from the FREEZER but the
 	 * display is not on
 	 */
-	if (unlikely(stats.online_cpus == 1))
+	if (unlikely(stats.online_cpus == 1) || stats.suspend)
 	{
 		goto reschedule;
 	}
@@ -258,6 +265,40 @@ reschedule:
 		msecs_to_jiffies(t->timer * HZ));
 }
 
+static int cpufreq_callback(struct notifier_block *nfb,
+		unsigned long event, void *data)
+{
+	struct cpufreq_policy *policy = data;
+
+	if (event != CPUFREQ_ADJUST || !stats.screen_cap_lock)
+		return 0;
+
+	cpufreq_verify_within_limits(policy,
+		policy->cpuinfo.min_freq,
+		stats.freq);
+
+	pr_info("CPU%d -> %d\n", policy->cpu, policy->max);
+
+	return 0;
+}
+
+static struct notifier_block cpufreq_notifier = {
+	.notifier_call = cpufreq_callback,
+};
+
+static void screen_off_cap(bool nerf)
+{
+	int cpu;
+
+	stats.freq = nerf ? MAX_FREQ_CAP : LONG_MAX;
+
+	stats.screen_cap_lock = true;
+	for_each_online_cpu(cpu) {
+		cpufreq_update_policy(cpu);
+	}
+	stats.screen_cap_lock = false;
+}
+
 static void mako_hotplug_suspend(struct work_struct *work)
 {
 	int cpu;
@@ -266,13 +307,17 @@ static void mako_hotplug_suspend(struct work_struct *work)
 
 	for_each_online_cpu(cpu)
 	{
-		if (!cpu)
+		if (cpu < 2)
 			continue;
 
 		cpu_down(cpu);
 	}
 
+
 	stats.online_cpus = num_online_cpus();
+	stats.suspend = true;
+
+	screen_off_cap(true);
 
 	pr_info("%s: suspend\n", MAKO_HOTPLUG);
 }
@@ -281,15 +326,18 @@ static void __ref mako_hotplug_resume(struct work_struct *work)
 {
 	int cpu;
 
+	screen_off_cap(false);
+
 	for_each_possible_cpu(cpu)
 	{
-		if (!cpu)
+		if (!cpu || cpu_online(cpu))
 			continue;
 
 		cpu_up(cpu);
 	}
 
 	stats.online_cpus = num_online_cpus();
+	stats.suspend = false;
 
 	pr_info("%s: resume\n", MAKO_HOTPLUG);
 }
@@ -549,6 +597,9 @@ static int __devinit mako_hotplug_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&decide_hotplug, decide_hotplug_func);
 
 	queue_delayed_work_on(0, wq, &decide_hotplug, HZ * 20);
+
+	cpufreq_register_notifier(&cpufreq_notifier,
+			CPUFREQ_POLICY_NOTIFIER);
 
 err:
 	return ret;
