@@ -5510,6 +5510,7 @@ static struct clk_lookup msm_clocks_8064[] = {
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-000d"), /* GSBI4, Slave Addr: 0x0d, imx111 */
 /* LGE_CHANGE_S, for A-PJT, 2013.5.7, jungki.kim[Start] */
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0020"), /* GSBI4, Slave Addr: 0x20, s5k4e5ya */
+	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0040"), /* GSBI4, Slave Addr: 0x20 << 1, ov5663 */
 /* LGE_CHANGE_E, for A-PJT, 2013.5.7, jungki.kim[End] */
 	CLK_LOOKUP("cam_clk",		cam2_clk.c,	"4-006e"), /* GSBI4, Slave Addr: 0x6e, imx119 *//* LGE_CHANGE_S, Using MCLK2, soojung.lim@lge.com */
 #else /* QCT Original */
@@ -5885,6 +5886,7 @@ static struct clk_lookup msm_clocks_8960_common[] __initdata = {
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-000d"), /* GSBI4, Slave Addr: 0x0d, imx111 */
 /* LGE_CHANGE_S, for A-PJT, 2013.5.7, jungki.kim[Start] */
 	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0020"), /* GSBI4, Slave Addr: 0x20, s5k4e5ya */
+	CLK_LOOKUP("cam_clk",		cam0_clk.c,	"4-0040"), /* GSBI4, Slave Addr: 0x20 << 1, ov5663 */
 /* LGE_CHANGE_E, for A-PJT, 2013.5.7, jungki.kim[End] */
 	CLK_LOOKUP("cam_clk",		cam1_clk.c, "4-006e"), /* GSBI4, Slave Addr: 0x6e, imx119 */
 #else /* QCT Original */

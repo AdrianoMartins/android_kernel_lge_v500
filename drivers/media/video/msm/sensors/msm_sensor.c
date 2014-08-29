@@ -74,7 +74,7 @@ static struct pm_gpio gpio23_param = {
 /*LGE_CHANGE_END, youngwook.song@lge.com Reconfig GPIO Setting for Rev.C and afterwards. 2013-03-05 */
 
 /* LGE_CHANGE_S, for A-PJT, 2013.5.7, jungki.kim[Start] */
-#if defined(CONFIG_S5K4E5YA)
+#if defined(CONFIG_S5K4E5YA) || defined (CONFIG_OV5693)
 #include <linux/mfd/pm8xxx/pm8921.h>
 #include "../../../../../arch/arm/mach-msm/lge/awifi/board-awifi.h"
 #include <mach/board_lge.h>
@@ -283,7 +283,14 @@ if(sub_cam_id_for_keep_screen_on != -2733){
 //Start LGE_BSP_CAMERA : dont use for shutter lag time - jonghwan.ko@lge.com
 #ifndef REDUCE_SHUTTER_LAG_TIME //Test1: Changed from def to ndef
 	      pr_err(" %s : remove delay for shutter lag time \n", __func__ );
-	      msleep(10);
+#ifdef CONFIG_OV5693
+    if(!strcmp(s_ctrl->sensordata->sensor_name, "ov5693"))
+        msleep(100); // OV5693 need to skip 3 or more frames for changing sensor mode. (eg. nonZSL capturing)
+    else
+        msleep(50);
+#else
+        msleep(10);
+#endif
 #else
 //End  LGE_BSP_CAMERA : dont use for shutter lag time - jonghwan.ko@lge.com
 	msleep(20);

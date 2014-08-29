@@ -630,8 +630,13 @@ extern uint8_t imx091_afcalib_data[8];
 /* LGE_CHANGE_S, AF offset enable, 2012-09-28, sungmin.woo@lge.com */
 extern uint8_t imx091_af_defocus_data[11];
 /* LGE_CHANGE_E, AF offset enable, 2012-09-28, sungmin.woo@lge.com */
-#elif defined(CONFIG_S5K4E5YA_EEPROM)
+#elif defined(CONFIG_S5K4E5YA_EEPROM) || defined(CONFIG_OV5693_EEPROM)
+#if defined(CONFIG_S5K4E5YA_EEPROM)
 extern uint8_t s5k4e5ya_afcalib_data[4];
+#endif
+#if defined(CONFIG_OV5693_EEPROM)
+extern uint8_t ov5693_afcalib_data[4];
+#endif
 #define ACT_MIN_MOVE_RANGE	150 // TBD
 
 #if defined(CONFIG_MACH_APQ8064_AWIFI)
@@ -712,13 +717,28 @@ static int32_t msm_actuator_init_step_table_use_eeprom(struct msm_actuator_ctrl_
 	printk("####  AF_LG_center_best_code = %d ####\n",a_ctrl->AF_LG_center_best_code);
     printk("####  AF_LG_defocus_offset = %d ####\n",a_ctrl->AF_LG_defocus_offset);
 /* LGE_CHANGE_E, AF offset enable, 2012-09-28, sungmin.woo@lge.com */
-    #elif defined(CONFIG_S5K4E5YA_EEPROM)
-	act_start = (uint16_t)(s5k4e5ya_afcalib_data[1] << 8) |
-			s5k4e5ya_afcalib_data[0];
-	act_macro = (uint16_t)(s5k4e5ya_afcalib_data[3] << 8) |
-			s5k4e5ya_afcalib_data[2];
-	printk("[QCTK_EEPROM][s5k4e5ya] %s: act_start = %d\n",__func__,act_start);
-	printk("[QCTK_EEPROM][s5k4e5ya] %s: act_macro = %d\n",__func__,act_macro);
+    #elif defined(CONFIG_S5K4E5YA_EEPROM) || defined(CONFIG_OV5693_EEPROM)
+        #if defined(CONFIG_S5K4E5YA_EEPROM)
+            if(act_start == 0 && act_macro == 0) { // to prevent value is not overwritten when 2 eeproms were configured at once.
+                act_start = (uint16_t)(s5k4e5ya_afcalib_data[1] << 8) |
+                s5k4e5ya_afcalib_data[0];
+                act_macro = (uint16_t)(s5k4e5ya_afcalib_data[3] << 8) |
+                s5k4e5ya_afcalib_data[2];
+                printk("[QCTK_EEPROM][s5k4e5ya] %s: act_start = %d\n",__func__,act_start);
+                printk("[QCTK_EEPROM][s5k4e5ya] %s: act_macro = %d\n",__func__,act_macro);
+            }
+        #endif
+        #if defined(CONFIG_OV5693_EEPROM)
+            if(act_start == 0 && act_macro == 0) { // to prevent value is not overwritten when 2 eeproms were configured at once.
+                act_start = (uint16_t)(ov5693_afcalib_data[1] << 8) |
+                ov5693_afcalib_data[0];
+                act_macro = (uint16_t)(ov5693_afcalib_data[3] << 8) |
+                ov5693_afcalib_data[2];
+                printk("[QCTK_EEPROM][ov5693] %s: act_start = %d\n",__func__,act_start);
+                printk("[QCTK_EEPROM][ov5693] %s: act_macro = %d\n",__func__,act_macro);
+            }
+        #endif
+
 
 	if (act_start <= ACTUATOR_MIN_MOVE_RANGE || act_macro > ACTUATOR_MAX_MOVE_RANGE) {
 	    printk("[QTCK_EEPROM] Out of AF MIN-MAX Value, Not use eeprom\n");

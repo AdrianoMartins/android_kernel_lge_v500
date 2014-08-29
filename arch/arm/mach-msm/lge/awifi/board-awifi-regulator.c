@@ -94,11 +94,13 @@ VREG_CONSUMERS(L11) = {
 	REGULATOR_SUPPLY("dsi1_avdd",		"mipi_dsi.1"),
 #if defined(CONFIG_MACH_LGE)
 	REGULATOR_SUPPLY("cam1_vana",		"4-0020"), /* GSBI4, Slave Addr: 0x20, s5k4e5ya */
+	REGULATOR_SUPPLY("cam1_vana",		"4-0040"), /* GSBI4, Slave Addr: 0x20 << 1, ov5693 *//*                                                                                   */
 #endif
 };
 VREG_CONSUMERS(L12) = {
 #if defined(CONFIG_MACH_LGE)
 	REGULATOR_SUPPLY("cam1_vdig_revA",		"4-0020"), /* GSBI4, Slave Addr: 0x20, s5k4e5ya */
+	REGULATOR_SUPPLY("cam1_vdig",	"4-0040"), /* GSBI4, Slave Addr: 0x20 << 1, ov5693 *//*                                                                                   */
 #else //Qualcomm original
 	REGULATOR_SUPPLY("cam_vdig",		"4-001a"),
 	REGULATOR_SUPPLY("cam_vdig",		"4-0048"),
@@ -269,6 +271,7 @@ VREG_CONSUMERS(LVS5) = {
 	REGULATOR_SUPPLY("8921_lvs5",		NULL),
 #if defined(CONFIG_MACH_LGE)
 	REGULATOR_SUPPLY("cam1_vio",	"4-0020"), /* GSBI4, Slave Addr: 0x20, s5k4e5ya */
+	REGULATOR_SUPPLY("cam1_vio",	"4-0040"), /* GSBI4, Slave Addr: 0x20 << 1, ov5693 *//*                                                                                   */
 	REGULATOR_SUPPLY("cam2_i2c",	"4-006e"), /* GSBI4, Slave Addr: 0x6e, imx119 */
 #else //Qualcomm original
 	REGULATOR_SUPPLY("cam_vio",		"4-001a"),

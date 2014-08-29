@@ -181,6 +181,27 @@ config S5K4E5YA_EEPROM
        bool "S5K4E5YA EEPROM support"
        depends on MSM_CAMERA
        default n
+
+config OV5693
+       bool "Sensor ov5693 (OMNIVISION 5MP)"
+       depends on MSM_CAMERA
+       select OV5693_ACT
+       default n
+       ---help---
+         Omnivision 5M with Autofocus
+
+config OV5693_ACT
+       bool "Actuator ov5693 (BAYER 5MP)"
+       depends on MSM_CAMERA
+       select MSM_ACTUATOR
+       default n
+       ---help---
+       Actuator for Omnivision 5MP Bayer Sensor
+
+config OV5693_EEPROM
+       bool "OV5693 EEPROM support"
+       depends on MSM_CAMERA
+       default n
 	  
 config MT9E013
 	bool "Sensor mt9e013 module (BAYER 8M)"
