@@ -15,7 +15,7 @@ KVER=$BASE_KVER$VER
 echo -e "${green}"
 echo ">>> set prerequisites"
 echo -e "${restore}"
-export LOCALVERSION="-"`echo $KVER`
+export LOCALVERSION="~"`echo $KVER`
 export ARCH=arm
 export SUBARCH=arm
 export CROSS_COMPILE=/home/mani/android/a15-linaro-4.9.1/bin/arm-cortex_a15-linux-gnueabihf-
