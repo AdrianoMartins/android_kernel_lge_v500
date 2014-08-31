@@ -18,7 +18,7 @@ echo -e "${restore}"
 export LOCALVERSION="~"`echo $KVER`
 export ARCH=arm
 export SUBARCH=arm
-export CROSS_COMPILE=/home/mani/android/a15-linaro-4.9.1/bin/arm-cortex_a15-linux-gnueabihf-
+export CROSS_COMPILE=/home/mani/android/a15-linaro-4.9.2/bin/arm-cortex_a15-linux-gnueabihf-
 #make mani_v500_defconfig
 #make menuconfig
 
