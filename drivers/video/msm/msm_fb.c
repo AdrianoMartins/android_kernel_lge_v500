@@ -2211,6 +2211,7 @@ static void bl_workqueue_handler(struct work_struct *work)
 		bl_updated = 1;
 		up(&mfd->sem);
 	}
+}
 
 static inline int rt_policy(int policy)
 {
