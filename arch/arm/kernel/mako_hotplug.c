@@ -41,7 +41,7 @@
 #define MIN_CPU_UP_US 1000 * USEC_PER_MSEC;
 #define NUM_POSSIBLE_CPUS num_possible_cpus()
 #define HIGH_LOAD 90 * 2
-#define MAX_FREQ_CAP 1036800
+#define MAX_FREQ_CAP 702000
 
 struct cpu_stats
 {
@@ -50,13 +50,11 @@ struct cpu_stats
 	u64 timestamp;
 	uint32_t freq;
 	bool screen_cap_lock;
-	bool suspend;
 } stats = {
 	.counter = 0,
 	.timestamp = 0,
 	.freq = 0,
 	.screen_cap_lock = false,
-	.suspend = false,
 };
 
 struct hotplug_tunables
@@ -219,7 +217,7 @@ static void __ref decide_hotplug_func(struct work_struct *work)
 	 * reschedule early when the system has woken up from the FREEZER but the
 	 * display is not on
 	 */
-	if (unlikely(stats.online_cpus == 1) || stats.suspend)
+	if (unlikely(stats.online_cpus == 1))
 	{
 		goto reschedule;
 	}
@@ -307,15 +305,13 @@ static void mako_hotplug_suspend(struct work_struct *work)
 
 	for_each_online_cpu(cpu)
 	{
-		if (cpu < 2)
+		if (!cpu)
 			continue;
 
 		cpu_down(cpu);
 	}
 
-
 	stats.online_cpus = num_online_cpus();
-	stats.suspend = true;
 
 	screen_off_cap(true);
 
@@ -337,7 +333,6 @@ static void __ref mako_hotplug_resume(struct work_struct *work)
 	}
 
 	stats.online_cpus = num_online_cpus();
-	stats.suspend = false;
 
 	pr_info("%s: resume\n", MAKO_HOTPLUG);
 }
