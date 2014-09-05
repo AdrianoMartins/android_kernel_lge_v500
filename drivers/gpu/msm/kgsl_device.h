@@ -91,7 +91,7 @@ struct kgsl_functable {
 	bool (*isidle) (struct kgsl_device *device);
 	int (*suspend_context) (struct kgsl_device *device);
 	int (*init) (struct kgsl_device *device);
-	int (*start) (struct kgsl_device *device, int priority);
+	int (*start) (struct kgsl_device *device);
 	int (*stop) (struct kgsl_device *device);
 	int (*getproperty) (struct kgsl_device *device,
 		enum kgsl_property_type type, void *value,
@@ -359,9 +359,6 @@ struct kgsl_process_private;
  * @pagefault: flag set if this context caused a pagefault.
  * @pagefault_ts: global timestamp of the pagefault, if KGSL_CONTEXT_PAGEFAULT
  * is set.
- * @fault_count: number of times gpu hanged in last _context_throttle_time ms
- * @fault_time: time of the first gpu hang in last _context_throttle_time ms
->>>>>>> 28ee7f6... msm: kgsl: Enhance GFT to avoid hang->recover->hang cycle
  */
 struct kgsl_context {
 	struct kref refcount;
@@ -377,8 +374,6 @@ struct kgsl_context {
 	struct list_head events;
 	struct list_head events_list;
 	unsigned int pagefault_ts;
-	unsigned int fault_count;
-	unsigned long fault_time;
 };
 
 struct kgsl_process_private {
@@ -738,25 +733,4 @@ static inline void kgsl_trace_gpu_sched_switch(const char *name,
 
 #endif
 
-/**
- * kgsl_sysfs_store() - parse a string from a sysfs store function
- * @buf: Incoming string to parse
- * @count: Size of the incoming string
- * @ptr: Pointer to an unsigned int to store the value
- */
-static inline ssize_t kgsl_sysfs_store(const char *buf, size_t count,
-		unsigned int *ptr)
-{
-	unsigned int val;
-	int rc;
-
-	rc = kstrtou32(buf, 0, &val);
-	if (rc)
-		return rc;
-
-	if (ptr)
-		*ptr = val;
-
-	return count;
-}
 #endif  /* __KGSL_DEVICE_H */
