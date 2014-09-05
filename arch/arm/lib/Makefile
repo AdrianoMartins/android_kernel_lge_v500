@@ -10,7 +10,6 @@ lib-y		:= backtrace.o changebit.o csumipv6.o csumpartial.o   \
 		   memmove.o memset.o memzero.o setbit.o              \
 		   delay.o findbit.o memchr.o			      \
 		   memset.o setbit.o			              \
-		   strncpy_from_user.o strnlen_user.o                 \
 		   strchr.o strrchr.o                                 \
 		   testchangebit.o testclearbit.o testsetbit.o        \
 		   ashldi3.o ashrdi3.o lshrdi3.o muldi3.o             \
