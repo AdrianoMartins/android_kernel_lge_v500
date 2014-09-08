@@ -32,6 +32,7 @@
 #include <linux/kernel_stat.h>
 #include <asm/cputime.h>
 #include <mach/cpufreq.h>
+#include <linux/touchboost.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/cpufreq_interactive.h>
@@ -144,7 +145,6 @@ static bool io_is_busy = true;
  */
 #define DEFAULT_INPUT_BOOST_FREQ (1134000)
 int input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
-extern u64 last_input_time;
 
 #define CPU_SYNC_FREQ (702000)
 static unsigned int sync_freq = CPU_SYNC_FREQ;
@@ -411,7 +411,7 @@ static void cpufreq_interactive_timer(unsigned long data)
 	cpu_load = loadadjfreq / pcpu->target_freq;
 
 	pcpu->prev_load = cpu_load;
-	boosted = now < (last_input_time + boostpulse_duration_val);
+	boosted = now < (get_input_time() + boostpulse_duration_val);
 
 	cpufreq_notify_utilization(pcpu->policy, cpu_load);
 
