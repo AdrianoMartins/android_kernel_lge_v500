@@ -9,7 +9,7 @@ clear
 
 # Kernel Version
 BASE_KVER="mani"
-VER="_v17"
+VER="_v18"
 KVER=$BASE_KVER$VER
 
 echo -e "${green}"
