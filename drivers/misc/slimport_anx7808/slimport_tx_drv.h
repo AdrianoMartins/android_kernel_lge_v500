@@ -32,7 +32,6 @@ extern unchar bedid_extblock[128];
 extern unchar bedid_firstblock[128];
 
 extern bool anx7808_ver_ba;
-extern unchar slimport_link_bw;
 
 enum SP_TX_System_State {
 	STATE_INIT = 1,
@@ -123,6 +122,7 @@ enum RX_CBL_TYPE {
 	RX_VGA = 0x03,
 	RX_NULL = 0x00
 };
+
 void sp_tx_variable_init(void);
 void sp_tx_initialization(void);
 void sp_tx_show_infomation(void);
