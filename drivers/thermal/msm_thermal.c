@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -19,90 +19,125 @@
 #include <linux/workqueue.h>
 #include <linux/cpu.h>
 #include <linux/cpufreq.h>
+#include <linux/msm_tsens.h>
 #include <linux/msm_thermal.h>
 #include <linux/platform_device.h>
 #include <linux/of.h>
 #include <mach/cpufreq.h>
 
-#define DEFAULT_TEMP_MAX	75
+unsigned int temp_threshold = 75;
+module_param(temp_threshold, int, 0755);
 
-static unsigned int freq_debug = 1;
-module_param_named(freq_limit_debug, freq_debug, uint, 0644);
+static struct thermal_info {
+	uint32_t cpuinfo_max_freq;
+	uint32_t limited_max_freq;
+	unsigned int safe_diff;
+	bool throttling;
+} info = {
+	.cpuinfo_max_freq = LONG_MAX,
+	.limited_max_freq = LONG_MAX,
+	.safe_diff = 5,
+	.throttling = false,
+};
 
-#define dprintk(msg...)		\
-do {				\
-	if (freq_debug)		\
-		pr_info(msg);	\
-} while (0)
+enum thermal_freqs {
+	FREQ_HELL 	  = 729600,
+	FREQ_VERY_HOT = 918000,
+	FREQ_HOT 	  = 1026000,
+	FREQ_WARM 	  = 1242000,
+};
 
-static unsigned int polling = HZ*2;
-static unsigned int cpu = 0;
-static unsigned int limit_idx;
-static unsigned int temp_max = DEFAULT_TEMP_MAX;
-module_param(temp_max, int, 0644);
-
-static uint32_t freq_max;
-static uint32_t freq_buffer;
+enum threshold_levels {
+	LEVEL_HELL 	   = 12,
+	LEVEL_VERY_HOT = 9,
+	LEVEL_HOT 	   = 5,
+};
 
 static struct msm_thermal_data msm_thermal_info;
+
 static struct delayed_work check_temp_work;
-static struct cpufreq_frequency_table *table;
 
-static void get_freq_table_limit_idx(void)
+unsigned short get_threshold(void)
 {
-	int i = 0;
+	return temp_threshold;
+}
 
-	table = cpufreq_frequency_get_table(cpu);
-	while (table[i].frequency != CPUFREQ_TABLE_END)
-		i++;
+static int msm_thermal_cpufreq_callback(struct notifier_block *nfb,
+		unsigned long event, void *data)
+{
+	struct cpufreq_policy *policy = data;
 
-	limit_idx = i - 1;
+	if (event != CPUFREQ_ADJUST)
+		return 0;
+
+	cpufreq_verify_within_limits(policy, policy->cpuinfo.min_freq,
+		info.limited_max_freq);
+
+	return 0;
+}
+
+static struct notifier_block msm_thermal_cpufreq_notifier = {
+	.notifier_call = msm_thermal_cpufreq_callback,
+};
+
+static void limit_cpu_freqs(uint32_t max_freq)
+{
+	unsigned int cpu;
+
+	if (info.limited_max_freq == max_freq)
+		return;
+
+	info.limited_max_freq = max_freq;
+
+	/* Update new limits */
+	get_online_cpus();
+	for_each_online_cpu(cpu)
+	{
+		cpufreq_update_policy(cpu);
+		pr_info("%s: Setting cpu%d max frequency to %d\n",
+				KBUILD_MODNAME, cpu, info.limited_max_freq);
+	}
+	put_online_cpus();
 }
 
 static void check_temp(struct work_struct *work)
 {
-	unsigned long temp = 0;
 	struct tsens_device tsens_dev;
-
-	if (!limit_idx)
-		get_freq_table_limit_idx();
-
-	freq_max = table[limit_idx].frequency;
-
-	if (freq_buffer == 0)
-		freq_buffer = freq_max;
+	uint32_t freq = 0;
+	long temp = 0;
 
 	tsens_dev.sensor_num = msm_thermal_info.sensor_id;
 	tsens_get_temp(&tsens_dev, &temp);
 
-	if (temp > temp_max) {
-		freq_max = table[limit_idx - 6].frequency;
-		polling = HZ/6;
-
-	} else if (temp > temp_max - 2) {
-		freq_max = table[limit_idx - 4].frequency;
-		polling = HZ/4;
-
-	} else if (temp > temp_max - 4) {
-		freq_max = table[limit_idx - 2].frequency;
-		polling = HZ/2;
-
-	} else if (temp > temp_max - 8) {
-		polling = HZ;
-
-	} else {
-		polling = HZ*2;
+	if (info.throttling)
+	{
+		if (temp < (temp_threshold - info.safe_diff))
+		{
+			limit_cpu_freqs(info.cpuinfo_max_freq);
+			info.throttling = false;
+			goto reschedule;
+		}
 	}
 
-	if (freq_buffer != freq_max) {
-		freq_buffer = freq_max;
-		for_each_possible_cpu(cpu)
-			msm_cpufreq_set_freq_limits(cpu, MSM_CPUFREQ_NO_LIMIT, freq_max);
-		dprintk("msm_thermal: CPU temp: %luC, max: %dMHz, polling: %dms",
-			temp, freq_max/1000, jiffies_to_msecs(polling));
+	if (temp >= temp_threshold + LEVEL_HELL)
+		freq = FREQ_HELL;
+	else if (temp >= temp_threshold + LEVEL_VERY_HOT)
+		freq = FREQ_VERY_HOT;
+	else if (temp >= temp_threshold + LEVEL_HOT)
+		freq = FREQ_HOT;
+	else if (temp > temp_threshold)
+		freq = FREQ_WARM;
+
+	if (freq)
+	{
+		limit_cpu_freqs(freq);
+
+		if (!info.throttling)
+			info.throttling = true;
 	}
 
-	schedule_delayed_work(&check_temp_work, polling);
+reschedule:
+	schedule_delayed_work_on(0, &check_temp_work, msecs_to_jiffies(250));
 }
 
 int __devinit msm_thermal_init(struct msm_thermal_data *pdata)
@@ -113,10 +148,11 @@ int __devinit msm_thermal_init(struct msm_thermal_data *pdata)
 	BUG_ON(pdata->sensor_id >= TSENS_MAX_SENSORS);
 	memcpy(&msm_thermal_info, pdata, sizeof(struct msm_thermal_data));
 
-	dprintk("msm_thermal: Maximum cpu temp: %dC", temp_max);
+	cpufreq_register_notifier(&msm_thermal_cpufreq_notifier,
+			CPUFREQ_POLICY_NOTIFIER);
 
 	INIT_DELAYED_WORK(&check_temp_work, check_temp);
-	schedule_delayed_work(&check_temp_work, HZ*20);
+	schedule_delayed_work_on(0, &check_temp_work, 0);
 
 	return ret;
 }
