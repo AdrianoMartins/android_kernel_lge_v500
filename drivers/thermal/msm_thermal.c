@@ -24,7 +24,7 @@
 #include <linux/of.h>
 #include <mach/cpufreq.h>
 
-#define DEFAULT_TEMP_MAX	93
+#define DEFAULT_TEMP_MAX	75
 
 static unsigned int freq_debug = 1;
 module_param_named(freq_limit_debug, freq_debug, uint, 0644);
