@@ -2323,9 +2323,6 @@ static struct msm_thermal_data msm_thermal_pdata = {
 #ifdef CONFIG_MACH_LGE
 	.poll_ms = 1000,
 	.limit_temp_degC = 93,
-#if defined(CONFIG_MACH_APQ8064_GK_KR)||defined(CONFIG_MACH_APQ8064_GKATT) || defined(CONFIG_MACH_APQ8064_GKOPENHK) || defined(CONFIG_MACH_APQ8064_GKOPENTW) || defined(CONFIG_MACH_APQ8064_GKSHBSG) || defined(CONFIG_MACH_APQ8064_AWIFI)
-	.limit_temp_degC_low = 20,
-#endif
 #else
 	.poll_ms = 250,
 	.limit_temp_degC = 60,
