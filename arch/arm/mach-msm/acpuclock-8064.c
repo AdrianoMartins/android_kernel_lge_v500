@@ -139,6 +139,7 @@ static struct l2_level l2_freq_tbl[] __initdata = {
 	{ }
 };
 
+/*
 #ifdef CONFIG_LGE_PM
 static struct acpu_level tbl_slow_factory_1026[] __initdata = {
 	{ 1, {   384000, PLL_8, 0, 0x00 }, L2(0),   950000 },
@@ -439,6 +440,8 @@ static struct acpu_level tbl_PVS6_2000MHz_factory_1026[] __initdata = {
 };
 
 #endif //CONFIG_LGE_PM
+*/
+
 static struct acpu_level tbl_slow[] __initdata = {
 	{ 1, {   384000, PLL_8, 0, 0x00 }, L2(0),   950000 },
 	{ 0, {   432000, HFPLL, 2, 0x20 }, L2(5),   975000 },
@@ -944,6 +947,7 @@ static struct pvs_table pvs_tables[NUM_SPEED_BINS][NUM_PVS] __initdata = {
 	[14][5] = { tbl_PVS5_1512MHz, sizeof(tbl_PVS5_1512MHz),     25000 },
 	[14][6] = { tbl_PVS6_1512MHz, sizeof(tbl_PVS6_1512MHz),     25000 },
 };
+/*
 #ifdef CONFIG_LGE_PM
 static struct pvs_table pvs_tables_factory_1026[NUM_SPEED_BINS][NUM_PVS] __initdata = {
 	[0][PVS_SLOW]    = {tbl_slow_factory_1026, sizeof(tbl_slow_factory_1026),     0 },
@@ -976,6 +980,7 @@ static struct pvs_table pvs_tables_factory_1026[NUM_SPEED_BINS][NUM_PVS] __initd
 	[14][6] = { tbl_PVS6_1512MHz_factory_1026, sizeof(tbl_PVS6_1512MHz_factory_1026),     25000 },
 };
 #endif
+*/
 
 static struct acpuclk_krait_params acpuclk_8064_params __initdata = {
 	.scalable = scalable,
@@ -992,6 +997,7 @@ static struct acpuclk_krait_params acpuclk_8064_params __initdata = {
 
 static int __init acpuclk_8064_probe(struct platform_device *pdev)
 {
+/*
 #ifdef CONFIG_LGE_PM
 	if (lge_get_factory_boot()) 
 	{
@@ -1011,6 +1017,7 @@ static int __init acpuclk_8064_probe(struct platform_device *pdev)
 		}
 	}
 #endif //CONFIG_LGE_PM
+*/
 	if (cpu_is_apq8064ab() ||
 		SOCINFO_VERSION_MAJOR(socinfo_get_version()) == 2) {
 		acpuclk_8064_params.hfpll_data->low_vdd_l_max = 37;
