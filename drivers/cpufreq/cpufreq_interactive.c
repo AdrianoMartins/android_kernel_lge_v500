@@ -73,12 +73,12 @@ static struct mutex gov_lock;
 static unsigned int hispeed_freq = DEFAULT_HISPEED_FREQ;
 
 /* Go to hi speed when CPU load at or above this value. */
-#define DEFAULT_GO_HISPEED_LOAD 90
+#define DEFAULT_GO_HISPEED_LOAD 92
 static unsigned long go_hispeed_load = DEFAULT_GO_HISPEED_LOAD;
 
 /* Frequency to apply target_load and above_hispeed_delay at. */
-#define FIRSTFREQ	1300000
-#define SECONDFREQ	1400000
+#define FIRSTFREQ	1400000
+#define SECONDFREQ	1500000
 
 /* Target load.  Lower values result in higher CPU speeds. */
 #define FIRSTLOAD	85
@@ -105,16 +105,16 @@ static unsigned long timer_rate = DEFAULT_TIMER_RATE;
  * Wait this long before raising speed above hispeed, by default a single
  * timer interval.
  */
-#define WAITFIRST	(50000)
-#define WAITSECOND	(60000)
-#define WAITTHIRD	(70000)
+#define WAITFIRST	(55000)
+#define WAITSECOND	(65000)
+#define WAITTHIRD	(75000)
 static unsigned int default_above_hispeed_delay[5] = {WAITFIRST, FIRSTFREQ, WAITSECOND, SECONDFREQ, WAITTHIRD};
 static spinlock_t above_hispeed_delay_lock;
 static unsigned int *above_hispeed_delay = default_above_hispeed_delay;
 static int nabove_hispeed_delay = ARRAY_SIZE(default_above_hispeed_delay);
 
 /* 1000000us - 1s */
-#define DEFAULT_BOOSTPULSE_DURATION 250000
+#define DEFAULT_BOOSTPULSE_DURATION 200000
 static int boostpulse_duration_val = DEFAULT_BOOSTPULSE_DURATION;
 #define DEFAULT_INPUT_BOOST_FREQ 1134000
 int input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
@@ -122,7 +122,7 @@ int input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
 /*
  * Making sure cpufreq stays low when it needs to stay low
  */
-#define DOWN_LOW_LOAD_THRESHOLD 13
+#define DOWN_LOW_LOAD_THRESHOLD 15
 
 /*
  * Default thread migration boost cpufreq
@@ -137,7 +137,10 @@ int input_boost_freq = DEFAULT_INPUT_BOOST_FREQ;
 static int timer_slack_val = DEFAULT_TIMER_SLACK;
 
 static bool io_is_busy;
+
+/* disabling some functions for compile error */
 #define ENABLE 0
+
 /* End tunables */
 
 /* Round to starting jiffy of next evaluation window */
