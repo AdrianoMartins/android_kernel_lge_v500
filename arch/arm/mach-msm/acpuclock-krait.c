@@ -23,6 +23,7 @@
 #include <linux/cpu.h>
 #include <linux/regulator/consumer.h>
 #include <linux/iopoll.h>
+#include <linux/module.h>
 
 #include <asm/mach-types.h>
 #include <asm/cpu.h>
@@ -55,6 +56,9 @@ int limit_cpufreq = 0;
 
 static DEFINE_MUTEX(driver_lock);
 static DEFINE_SPINLOCK(l2_lock);
+
+char *cpu_type = "UNKNOWN";
+module_param(cpu_type, charp, 0755);
 
 static struct drv_data drv;
 
@@ -1203,7 +1207,15 @@ static struct pvs_table * __init select_freq_plan(
 
 	if (bin.pvs_valid) {
 		drv.pvs_bin = bin.pvs;
-		dev_info(drv.dev, "ACPU PVS: %d\n", drv.pvs_bin);
+		if (drv.pvs_bin == 1)
+			cpu_type = "SLOW";
+		else if (drv.pvs_bin == 2)
+			cpu_type = "NOMINAL";
+		else if (drv.pvs_bin == 3)
+			cpu_type = "FAST";
+		else if (drv.pvs_bin == 4)
+			cpu_type = "FASTEST";
+		dev_info(drv.dev, "ACPU PVS: %s\n", cpu_type);
 	} else {
 		drv.pvs_bin = 0;
 		dev_warn(drv.dev, "ACPU PVS: Defaulting to %d\n",
