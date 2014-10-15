@@ -738,76 +738,48 @@ apq8064_rpm_regulator_init_data[] __devinitdata = {
 	RPM_SMPS(S2, 0, 1, 0, 1300000, 1300000, NULL,      0, 1p60, NONE, NONE),
 	RPM_SMPS(S3, 0, 1, 1,  500000, 1150000, NULL, 100000, 4p80, NONE, NONE),
 	RPM_SMPS(S4, 1, 1, 0, 1800000, 1800000, NULL, 100000, 1p60, AUTO, AUTO),
-#if defined(CONFIG_MACH_LGE)//for support 1.7GHz
 	RPM_SMPS(S7, 0, 1, 0, 1300000, 1300000, NULL, 100000, 3p20, NONE, NONE),
-#else
-    RPM_SMPS(S7, 0, 0, 0, 1300000, 1300000, NULL, 100000, 3p20, NONE, NONE),
-#endif
-#if defined(CONFIG_MACH_LGE)
 	RPM_SMPS(S8, 0, 1, 0, 1150000, 1150000, NULL, 100000, 1p60, NONE, NONE),
-#else
-	RPM_SMPS(S8, 0, 1, 0, 2200000, 2200000, NULL,      0, 1p60, NONE, NONE),
-#endif
 	/*	ID a_on pd ss min_uV   max_uV   supply    sys_uA init_ip */
 	RPM_LDO(L1,  1, 1, 0, 1100000, 1100000, "8921_s4",     0,  1000),
 	RPM_LDO(L2,  0, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
-#if defined(CONFIG_MACH_LGE)
 	/* HSUSB 3p3: max 3.5v */
 	RPM_LDO(L3,  0, 1, 0, 3075000, 3500000, NULL,          0,     0),
-#else
-	RPM_LDO(L3,  0, 1, 0, 3075000, 3075000, NULL,          0,     0),
-#endif
 	RPM_LDO(L4,  1, 1, 0, 1800000, 1800000, NULL,          0, 10000),
 	RPM_LDO(L5,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
 	RPM_LDO(L6,  0, 1, 0, 2950000, 2950000, NULL,          0,     0),
 	RPM_LDO(L7,  0, 1, 0, 1850000, 2950000, NULL,          0,     0),
-#if defined(CONFIG_MACH_APQ8064_AWIFI070U)
-	RPM_LDO(L8,  0, 1, 0, 2600000, 2600000, NULL,		   0,	  0),
-#else
 	RPM_LDO(L8,  0, 1, 0, 2800000, 2800000, NULL,          0,     0),
-#endif
 	RPM_LDO(L9,  0, 1, 0, 3000000, 3000000, NULL,          0,     0),
-	RPM_LDO(L10, 0, 1, 0, 2800000, 2800000, NULL,          0,     0),
-#if defined(CONFIG_MACH_LGE)
+	RPM_LDO(L10, 0, 1, 0, 2900000, 2900000, NULL,          0,     0),
 	RPM_LDO(L11, 0, 1, 0, 2850000, 2850000, NULL,          0,     0),
-#else
-	RPM_LDO(L11, 0, 1, 0, 3000000, 3000000, NULL,          0,     0),
-#endif
-/* LGE_CHANGE_S, for A-PJT, 2013.5.7, jungki.kim[Start] */
+#if defined(CONFIG_MACH_LGE)
 	RPM_LDO(L12, 0, 1, 0, 1500000, 1500000, "8921_s4",     0,     0),
-/* LGE_CHANGE_E, for A-PJT, 2013.5.7, jungki.kim[End] */
+#else
+	RPM_LDO(L12, 0, 1, 0, 1200000, 1200000, "8921_s4",     0,     0),
+#endif
 	RPM_LDO(L13, 0, 0, 0, 2220000, 2220000, NULL,          0,     0),
 	RPM_LDO(L14, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
-//sangwooha.ha@lge.com 20120813 GK bring up ==> LCD issue fix
+#ifdef CONFIG_TOUCHSCREEN_ATMEL_MXT1188S
 	RPM_LDO(L15, 0, 1, 0, 3300000, 3300000, NULL,          0,    19),
+#else
+	RPM_LDO(L15, 0, 1, 0, 1800000, 2950000, NULL,          0,     0),
+#endif
 	RPM_LDO(L16, 0, 1, 0, 2800000, 2800000, NULL,          0,     0),
-#if defined(CONFIG_MACH_LGE)
 	RPM_LDO(L17, 0, 1, 0, 2850000, 2850000, NULL,          0,     0),
-#else
-	RPM_LDO(L17, 0, 1, 0, 2000000, 2000000, NULL,          0,     0),
-#endif
-#ifdef CONFIG_SLIMPORT_ANX7808
 	RPM_LDO(L18, 0, 1, 0, 1100000, 1100000, NULL,          0,     0),
-#else
-	RPM_LDO(L18, 0, 1, 0, 1300000, 1800000, "8921_s4",     0,     0),
-#endif
-#if defined(CONFIG_MACH_LGE)
 	RPM_LDO(L21, 0, 1, 0, 1800000, 1950000, NULL,          0,     0),
-#else
-	RPM_LDO(L21, 0, 1, 0, 1050000, 1050000, NULL,          0,     0),
-#endif
-//sangwooha.ha@lge.com 20120813 GK bring up ==> LCD issue fix
+#ifdef CONFIG_FB_MSM_MIPI_LGIT_VIDEO_WUXGA_PT
 	RPM_LDO(L22, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
+#else
+	RPM_LDO(L22, 0, 1, 0, 2600000, 2600000, NULL,          0,     0),
+#endif
 	RPM_LDO(L23, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
 	RPM_LDO(L24, 0, 1, 1,  750000, 1150000, "8921_s1", 10000, 10000),
 	RPM_LDO(L25, 1, 1, 0, 1250000, 1250000, "8921_s1", 10000, 10000),
 	RPM_LDO(L27, 0, 0, 0, 1100000, 1100000, "8921_s7",     0,     0),
 	RPM_LDO(L28, 0, 1, 0, 1050000, 1050000, "8921_s7",     0,     0),
-#if defined(CONFIG_MACH_LGE)
 	RPM_LDO(L29, 0, 1, 0, 1800000, 1800000, NULL,          0,     0),
-#else
-	RPM_LDO(L29, 0, 1, 0, 2000000, 2000000, NULL,          0,     0),
-#endif
 	/*     ID  a_on pd ss                   supply */
 	RPM_VS(LVS1, 0, 1, 0,                   "8921_s4"),
 	RPM_VS(LVS3, 0, 1, 0,                   "8921_s4"),
