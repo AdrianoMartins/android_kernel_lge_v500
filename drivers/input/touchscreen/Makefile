@@ -115,3 +115,4 @@ endif
 
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_MAXT224E)	 += atmel_ts.o
 
+obj-y += touchboost.o
