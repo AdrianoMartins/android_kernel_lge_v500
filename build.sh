@@ -53,7 +53,7 @@ echo ">>> build zipfile"
 echo -e "${restore}"
 cd $ZIP_DIR
 rm -f *.zip
-zip -9 -r $zipfile *
+zip -9 -r $zipfile.zip *
 rm -f /tmp/*.zip
 cp *.zip /tmp
 
