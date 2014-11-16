@@ -47,7 +47,7 @@ echo -e "${restore}"
 rm $ZIP_DIR/system/lib/modules/*
 find $KERNEL_DIR -name "*.ko" -exec cp {} $ZIP_DIR/system/lib/modules/ \;
 
-zipfile=$KVER
+zipfile=$KVER.zip
 echo -e "${green}"
 echo ">>> build zipfile"
 echo -e "${restore}"
