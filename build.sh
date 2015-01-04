@@ -8,11 +8,11 @@ restore='\033[0m'
 clear
 
 # Folders
-BASE_DIR="$HOME/Android/kernel"
+BASE_DIR="$HOME/android/kernel"
 
 # Kernel Version
 BASE_KVER="aosp_lollipop"
-VER="_v1.0"
+VER="_v2.0"
 KVER=$BASE_KVER$VER
 DEFCONF="aosp_v500_defconfig"
 
@@ -28,7 +28,7 @@ echo -e "${restore}"
 export LOCALVERSION="-"`echo $KVER`
 export ARCH=arm
 export SUBARCH=arm
-export CROSS_COMPILE="$BASE_DIR/toolchain/arm-cortex_a15-linux-gnueabihf-linaro_4.9.2-2014.10/bin/arm-cortex_a15-linux-gnueabihf-"
+export CROSS_COMPILE="$BASE_DIR/toolchain/arm-cortex_a15-linux-gnueabihf-linaro_4.9.3-2014.12/bin/arm-cortex_a15-linux-gnueabihf-"
 
 echo -e "${green}"
 echo ">>> build zImage"
