@@ -2712,6 +2712,9 @@ static int kgsl_setup_ion(struct kgsl_mem_entry *entry,
 	struct kgsl_dma_buf_meta *meta;
 	int ret = 0;
 
+	if (!param->len)
+		return -EINVAL;
+
 	meta = kzalloc(sizeof(*meta), GFP_KERNEL);
 	if (!meta)
 		return -ENOMEM;
