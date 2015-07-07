@@ -221,3 +221,4 @@ endif
 
 # Hack
 obj-$(CONFIG_SOUND_CONTROL_HAX_GPL) += sound_control_gpl.o
+obj-$(CONFIG_SOUND_CONTROL_HAX_3_GPL) += sound_control_3_gpl.o
