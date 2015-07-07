@@ -218,3 +218,6 @@ obj-$(CONFIG_SND_SOC_TPA2028D_DUAL_SPEAKER) += tpa2028d_dual_speaker.o
 ifeq ($(CONFIG_SND_SOC_ES325_SLIM),y)
 obj-$(CONFIG_SND_SOC_ES325_SLIM) += es325.o
 endif
+
+# Hack
+obj-$(CONFIG_SOUND_CONTROL_HAX_GPL) += sound_control_gpl.o
