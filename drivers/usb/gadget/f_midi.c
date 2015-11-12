@@ -66,7 +66,6 @@ struct gmidi_in_port {
 	uint8_t data[2];
 };
 
-
 struct midi_alsa_config {
 	int	card;
 	int	device;
@@ -126,7 +125,7 @@ static struct uac1_ac_header_descriptor_1 midi_ac_header_desc /* __initdata */ =
 };
 
 /* B.4.1  Standard MS Interface Descriptor */
-static struct usb_interface_descriptor ms_interface_desc /* __initdata */  = {
+static struct usb_interface_descriptor ms_interface_desc /* __initdata */ = {
 	.bLength =		USB_DT_INTERFACE_SIZE,
 	.bDescriptorType =	USB_DT_INTERFACE,
 	/* .bInterfaceNumber =	DYNAMIC */
@@ -801,7 +800,7 @@ f_midi_bind(struct usb_configuration *c, struct usb_function *f)
 
 	/* add the headers - these are always the same */
 	midi_function[i++] = (struct usb_descriptor_header *) &midi_ac_interface_desc;
-	midi_function[i++] = (struct usb_descriptor_header *) &midi_ac_interface_desc;
+	midi_function[i++] = (struct usb_descriptor_header *) &midi_ac_header_desc;
 	midi_function[i++] = (struct usb_descriptor_header *) &ms_interface_desc;
 
 	/* calculate the header's wTotalLength */
@@ -929,7 +928,7 @@ int /* __init */ f_midi_bind_config(struct usb_configuration *c,
 			      unsigned int in_ports,
 			      unsigned int out_ports,
 			      unsigned int buflen,
-                  unsigned int qlen,
+			      unsigned int qlen,
 			      struct midi_alsa_config* config)
 {
 	struct f_midi *midi;
@@ -939,7 +938,7 @@ int /* __init */ f_midi_bind_config(struct usb_configuration *c,
 		config->card = -1;
 		config->device = -1;
 	}
-    
+
 	/* sanity check */
 	if (in_ports > MAX_PORTS || out_ports > MAX_PORTS)
 		return -EINVAL;
@@ -989,11 +988,12 @@ int /* __init */ f_midi_bind_config(struct usb_configuration *c,
 	if (status)
 		goto setup_fail;
 
+
 	if (config) {
 		config->card = midi->rmidi->card->number;
 		config->device = midi->rmidi->device;
 	}
-    
+
 	return 0;
 
 setup_fail:
