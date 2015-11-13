@@ -18,8 +18,7 @@
 #include "internal.h"
 
 #ifdef CONFIG_DYNAMIC_FSYNC
-extern bool early_suspend_active;
-extern bool dyn_fsync_active;
+#include <linux/dyn_sync_cntrl.h>
 #endif
 
 #define VALID_FLAGS (SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE| \
@@ -95,16 +94,19 @@ void sync_filesystems(int wait)
 {
 	iterate_supers(sync_one_sb, &wait);
 }
-
+#ifdef CONFIG_DYNAMIC_FSYNC
+EXPORT_SYMBOL_GPL(sync_filesystems);
+#endif
 /*
  * sync everything.  Start out by waking pdflush, because that writes back
  * all queues in parallel.
  */
 SYSCALL_DEFINE0(sync)
 {
+	int nowait = 0, wait = 1;
 	wakeup_flusher_threads(0, WB_REASON_SYNC);
-	sync_filesystems(0);
-	sync_filesystems(1);
+	iterate_supers(sync_one_sb, &nowait);
+	iterate_supers(sync_one_sb, &wait);
 	if (unlikely(laptop_mode))
 		laptop_sync_completion();
 	return 0;
@@ -116,8 +118,10 @@ static void do_sync_work(struct work_struct *work)
 	 * Sync twice to reduce the possibility we skipped some inodes / pages
 	 * because they were temporarily locked
 	 */
-	sync_filesystems(0);
-	sync_filesystems(0);
+	int nowait = 0;
+
+	iterate_supers(sync_one_sb, &nowait);
+	iterate_supers(sync_one_sb, &nowait);
 	printk("Emergency Sync complete\n");
 	kfree(work);
 }
@@ -170,16 +174,12 @@ SYSCALL_DEFINE1(syncfs, int, fd)
 int vfs_fsync_range(struct file *file, loff_t start, loff_t end, int datasync)
 {
 #ifdef CONFIG_DYNAMIC_FSYNC
-	if (likely(dyn_fsync_active && !early_suspend_active))
+	if (likely(dyn_fsync_active && suspend_active))
 		return 0;
-	else {
 #endif
 	if (!file->f_op || !file->f_op->fsync)
 		return -EINVAL;
 	return file->f_op->fsync(file, start, end, datasync);
-#ifdef CONFIG_DYNAMIC_FSYNC
-	}
-#endif
 }
 EXPORT_SYMBOL(vfs_fsync_range);
 
@@ -214,9 +214,8 @@ static int do_fsync(unsigned int fd, int datasync)
 SYSCALL_DEFINE1(fsync, unsigned int, fd)
 {
 #ifdef CONFIG_DYNAMIC_FSYNC
-	if (likely(dyn_fsync_active && !early_suspend_active))
+	if (likely(dyn_fsync_active && suspend_active))
 		return 0;
-	else
 #endif
 	return do_fsync(fd, 0);
 }
@@ -298,11 +297,6 @@ EXPORT_SYMBOL(generic_write_sync);
 SYSCALL_DEFINE(sync_file_range)(int fd, loff_t offset, loff_t nbytes,
 				unsigned int flags)
 {
-#ifdef CONFIG_DYNAMIC_FSYNC
-	if (likely(dyn_fsync_active && !early_suspend_active))
-		return 0;
-	else {
-#endif
 
 	int ret;
 	struct file *file;
@@ -310,6 +304,10 @@ SYSCALL_DEFINE(sync_file_range)(int fd, loff_t offset, loff_t nbytes,
 	loff_t endbyte;			/* inclusive */
 	int fput_needed;
 	umode_t i_mode;
+#ifdef CONFIG_DYNAMIC_FSYNC
+	if (likely(dyn_fsync_active && suspend_active))
+		return 0;
+#endif
 
 	ret = -EINVAL;
 	if (flags & ~VALID_FLAGS)
@@ -383,9 +381,6 @@ out_put:
 	fput_light(file, fput_needed);
 out:
 	return ret;
-#ifdef CONFIG_DYNAMIC_FSYNC
-	}
-#endif
 }
 #ifdef CONFIG_HAVE_SYSCALL_WRAPPERS
 asmlinkage long SyS_sync_file_range(long fd, loff_t offset, loff_t nbytes,
@@ -403,9 +398,8 @@ SYSCALL_DEFINE(sync_file_range2)(int fd, unsigned int flags,
 				 loff_t offset, loff_t nbytes)
 {
 #ifdef CONFIG_DYNAMIC_FSYNC
-	if (likely(dyn_fsync_active && !early_suspend_active))
+	if (likely(dyn_fsync_active && suspend_active))
 		return 0;
-	else
 #endif
 	return sys_sync_file_range(fd, offset, nbytes, flags);
 }
