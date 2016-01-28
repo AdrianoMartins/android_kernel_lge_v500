@@ -2685,6 +2685,7 @@ extern void trigger_baseline_state_machine(int usb_type);
 static void msm_otg_sm_work(struct work_struct *w)
 {
 	struct msm_otg *motg = container_of(w, struct msm_otg, sm_work);
+	struct msm_otg_platform_data *pdata = motg->pdata;
 	struct usb_otg *otg = motg->phy.otg;
 	bool work = 0, srp_reqd;
 
@@ -2737,7 +2738,15 @@ static void msm_otg_sm_work(struct work_struct *w)
 			pr_debug("b_sess_vld\n");
 			switch (motg->chg_state) {
 			case USB_CHG_STATE_UNDEFINED:
-				msm_chg_detect_work(&motg->chg_work.work);
+				if (pdata->otg_control == OTG_USER_CONTROL) {
+					motg->chg_type = USB_SDP_CHARGER;
+					motg->chg_state =
+						USB_CHG_STATE_DETECTED;
+					work = 1;
+				} else {
+					msm_chg_detect_work(
+						&motg->chg_work.work);
+				}
 				break;
 			case USB_CHG_STATE_DETECTED:
 				pr_info("msm_otg: detected charger type=%d\n",motg->chg_type);
