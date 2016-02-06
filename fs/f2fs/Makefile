@@ -1,3 +1,5 @@
+ccflags-y := -O3 -fno-graphite-identity -fno-loop-interchange -fno-loop-block -fno-loop-strip-mine -fno-graphite
+
 obj-$(CONFIG_F2FS_FS) += f2fs.o
 
 f2fs-y		:= dir.o file.o inode.o namei.o hash.o super.o inline.o
