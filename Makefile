@@ -243,10 +243,18 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 	  else if [ -x /bin/bash ]; then echo /bin/bash; \
 	  else echo sh; fi ; fi)
 
+GRAPHITE = -fgraphite -fgraphite-identity -floop-flatten -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
+LOOPNEST = -floop-nest-optimize
+O3 = -O3 -ffast-math -ftree-vectorize
+NOWARN = -fomit-frame-pointer -Wno-array-bounds -Wno-strict-overflow $(call cc-disable-warning,maybe-uninitialized,)
+PIPE = -pipe
+MISC = -funsafe-math-optimizations
+A15 = -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4 -ftree-vectorize -mvectorize-with-neon-quad -ftree-vectorizer-verbose=2
+
 HOSTCC       = gcc
 HOSTCXX      = g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 -fomit-frame-pointer -fgcse-las
-HOSTCXXFLAGS = -O3 -fgcse-las
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes $(O3) $(LTO) $(GRAPHITE) $(PIPE) $(MISC) $(NOWARN)
+HOSTCXXFLAGS = $(O3) $(LTO) $(GRAPHITE) $(PIPE) $(MISC) $(NOWARN)
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -350,18 +358,15 @@ CHECK		= sparse
 CC		= $(srctree)/scripts/gcc-wrapper.py $(REAL_CC)
 
 CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
-		   -Wbitwise -Wno-return-void $(CF)
-KERNEL_FLAGS 	=  -fgcse-lm -fgcse-sm -fsched-spec-load -fforce-addr -ffast-math -fsingle-precision-constant -marm -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4 -ftree-vectorize -mvectorize-with-neon-quad -funroll-loops -fgcse-las
-MOD_FLAGS 	= -DMODULE $(KERNEL_FLAGS)
-CFLAGS_MODULE 	= $(MODFLAGS)
-AFLAGS_MODULE 	= $(MODFLAGS)
+		  -Wbitwise -Wno-return-void $(CF)
+
+MOD_FLAGS 	= -DMODULE $(O3) $(LTO) $(GRAPHITE) $(PIPE) $(MISC) $(NOWARN) $(A15) 
+CFLAGS_MODULE  = $(MODFLAGS)
+AFLAGS_MODULE  = $(MODFLAGS)
 LDFLAGS_MODULE 	= -T $(srctree)/scripts/module-common.lds
-CFLAGS_KERNEL  	= $(MODFLAGS)
-ifdef CONFIG_CC_GRAPHITE_OPTIMIZATION
-CFLAGS_KERNEL += -fgraphite-identity -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
-endif
-AFLAGS_KERNEL 	= $(MODFLAGS)
-CFLAGS_GCOV   	= -fprofile-arcs -ftest-coverage
+CFLAGS_KERNEL  	= 
+AFLAGS_KERNEL	=
+CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
 
 # Use LINUXINCLUDE when you must reference the include/ directory.
 # Needed to be compatible with the O= option
@@ -370,7 +375,7 @@ LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
                    $(if $(KBUILD_SRC), -I$(srctree)/include) \
                    -include $(srctree)/include/linux/kconfig.h
 
-KBUILD_CPPFLAGS := -D__KERNEL__ -O3 -fgcse-lm -fgcse-sm -fsched-spec-load -fforce-addr -fsingle-precision-constant -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4 -ftree-vectorize
+KBUILD_CPPFLAGS := -D__KERNEL__
 
 #
 # LINARO OPT
@@ -378,13 +383,10 @@ KBUILD_CPPFLAGS := -D__KERNEL__ -O3 -fgcse-lm -fgcse-sm -fsched-spec-load -fforc
 CFLAGS_A15 	= -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4 -ffast-math -fgcse-las -marm
 CFLAGS_MODULO 	= -fmodulo-sched -fmodulo-sched-allow-regmoves
 KERNEL_MODS 	= $(CFLAGS_A15) $(CFLAGS_MODULO)
-KBUILD_CFLAGS 	:= -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+KBUILD_CFLAGS   := -Wall -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
-		   -Werror-implicit-function-declaration \
-		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks \
-		   -ftree-vectorize \
-		   -mno-unaligned-access \
+		   -Wno-format-security \
 		   -Wno-sizeof-pointer-memaccess \
 		   -Wno-maybe-uninitialized \
 		   $(KERNEL_MODS)
@@ -578,21 +580,7 @@ endif # $(dot-config)
 # Defaults to vmlinux, but the arch makefile usually adds further targets
 all: vmlinux
 
-ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
-KBUILD_CFLAGS	+= -Os $(call cc-disable-warning,maybe-uninitialized,)
-else
-KBUILD_CFLAGS	+= -O3
-KBUILD_CFLAGS   += $(call cc-disable-warning,maybe-uninitialized) -fno-inline-functions
-KBUILD_CFLAGS   += $(call cc-disable-warning,array-bounds)
-endif
-
-ifdef CONFIG_CC_GRAPHITE_OPTIMIZATION
-KBUILD_CFLAGS += -fgraphite-identity -floop-parallelize-all -ftree-loop-linear -floop-interchange -floop-strip-mine -floop-block
-endif
-
-ifdef CONFIG_CC_LINK_TIME_OPTIMIZATION
-KBUILD_CFLAGS	+= -flto -fno-toplevel-reorder
-endif
+KBUILD_CFLAGS	+= $(O3) $(LTO) $(GRAPHITE) $(PIPE) $(MISC) $(NOWARN) $(A15) 
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
 

@@ -2,6 +2,7 @@
 # Makefile for the Linux fat filesystem support.
 #
 
+KERNEL_CFLAGS += -Wno-array-bounds
 
 obj-$(CONFIG_FAT_FS) += fat.o
 obj-$(CONFIG_VFAT_FS) += vfat.o
