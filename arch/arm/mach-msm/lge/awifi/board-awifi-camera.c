@@ -428,12 +428,14 @@ static struct camera_vreg_t apq_8064_back_cam_vreg_revA[] = {
 /*                                                                            */
 
 /*                                                                                     */
+#ifdef CONFIG_OV5693
 static struct camera_vreg_t apq_8064_ov5693_cam_vreg[] = {
 	{"cam1_vana", REG_LDO, 2800000, 2850000, 85600, 0}, // VREG_L12, 2.8V AVDD
 	{"cam1_vio", REG_VS, 0, 0, 0, 0}, // LVS5, 1.8V IOVDD
 	{"cam1_vdig", REG_LDO, 1500000, 1500000, 105000, 0}, // VREG_L12, 1.2V DVDD // New OV5693 sensor does not use vdig. It uses internal LDO
 };
 /*                                                                                     */
+#endif
 #endif
 
 #ifdef CONFIG_IMX119
