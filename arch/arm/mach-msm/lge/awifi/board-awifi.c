@@ -4378,7 +4378,7 @@ static void __init apq8064_cdp_init(void)
 	}
 #endif /*              */
 
-#if !defined(CONFIG_MACH_APQ8064_ALTEV)
+#if 0//!defined(CONFIG_MACH_APQ8064_ALTEV)
 //                                                                                              
 	if (lge_get_board_revno() >= HW_REV_A) {
 		apq8064_awifi_init_input();
